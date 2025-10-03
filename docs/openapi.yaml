@@ -1,0 +1,247 @@
+openapi: 3.1.0
+info:
+  title: AI Risk & Compliance Monitor
+  version: 0.1.0
+  description: >
+    FastAPI gateway that wraps LLM/RAG, Agent, and ML predictions with
+    audit logging, token/cost tracking, and basic governance hooks.
+servers:
+  - url: http://localhost:8000
+    description: Local dev
+
+paths:
+  /healthz:
+    get:
+      summary: Liveness check
+      responses:
+        "200":
+          description: OK
+
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      responses:
+        "200":
+          description: Prometheus text format
+
+  /query:
+    post:
+      summary: Ask a question via LLM with optional RAG grounding
+      operationId: postQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueryRequest"
+            examples:
+              basic:
+                value:
+                  question: "What is GDPR?"
+                  grounded: true
+                  user_id: "u-123"
+      responses:
+        "200":
+          description: LLM answer with optional citations and cost
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /research:
+    post:
+      summary: Agentic research pipeline (search → fetch → summarize → risk_check)
+      operationId: postResearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResearchRequest"
+            examples:
+              default:
+                value:
+                  topic: "Latest updates on GDPR and AI"
+                  steps: ["search","fetch","summarize","risk_check"]
+                  user_id: "u-123"
+      responses:
+        "200":
+          description: Structured research output with audit trace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResearchResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /predict:
+    post:
+      summary: Predict via model served from MLflow registry
+      operationId: postPredict
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PredictRequest"
+            examples:
+              churn:
+                value:
+                  user_id: "u-123"
+                  features:
+                    tenure_months: 15
+                    monthly_charges: 72.5
+                    contract_type: "month-to-month"
+      responses:
+        "200":
+          description: Prediction with model metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+components:
+  schemas:
+    # ---- Common ----
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+        request_id:
+          type: string
+      required: [detail]
+
+    AuditMeta:
+      type: object
+      properties:
+        request_id: { type: string }
+        user_id: { type: string, nullable: true }
+        endpoint: { type: string }
+        created_at: { type: string, format: date-time }
+        tokens_prompt: { type: integer, nullable: true }
+        tokens_completion: { type: integer, nullable: true }
+        cost_usd: { type: number, format: float, nullable: true }
+        latency_ms: { type: integer, nullable: true }
+        compliance_flag: { type: boolean, default: false }
+        prompt_hash: { type: string, nullable: true }
+        response_hash: { type: string, nullable: true }
+
+    # ---- /query ----
+    QueryRequest:
+      type: object
+      properties:
+        question:
+          type: string
+          minLength: 3
+        grounded:
+          type: boolean
+          default: false
+        user_id:
+          type: string
+          nullable: true
+      required: [question]
+    Citation:
+      type: object
+      properties:
+        source: { type: string }          # file name / url
+        page: { type: integer, nullable: true }
+        snippet: { type: string, nullable: true }
+    QueryResponse:
+      type: object
+      properties:
+        answer: { type: string }
+        citations:
+          type: array
+          items: { $ref: "#/components/schemas/Citation" }
+        audit: { $ref: "#/components/schemas/AuditMeta" }
+      required: [answer, audit]
+
+    # ---- /research ----
+    ResearchRequest:
+      type: object
+      properties:
+        topic: { type: string, minLength: 3 }
+        steps:
+          type: array
+          items:
+            type: string
+            enum: [search, fetch, summarize, risk_check]
+          default: [search, fetch, summarize, risk_check]
+        user_id:
+          type: string
+          nullable: true
+      required: [topic]
+    AgentStep:
+      type: object
+      properties:
+        name: { type: string }
+        inputs: { type: object, additionalProperties: true }
+        outputs: { type: object, additionalProperties: true }
+        latency_ms: { type: integer }
+        hash: { type: string }
+        timestamp: { type: string, format: date-time }
+    ResearchResponse:
+      type: object
+      properties:
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              title: { type: string }
+              summary: { type: string }
+              url: { type: string }
+        sources:
+          type: array
+          items:
+            type: string
+        audit: { $ref: "#/components/schemas/AuditMeta" }
+        steps:
+          type: array
+          items: { $ref: "#/components/schemas/AgentStep" }
+      required: [findings, audit]
+
+    # ---- /predict ----
+    PredictRequest:
+      type: object
+      properties:
+        user_id:
+          type: string
+          nullable: true
+        features:
+          type: object
+          additionalProperties:
+            oneOf:
+              - { type: number }
+              - { type: string }
+              - { type: boolean }
+      required: [features]
+    PredictResponse:
+      type: object
+      properties:
+        prediction:
+          oneOf:
+            - { type: number }
+            - { type: string }
+            - type: object
+              additionalProperties: true
+        model_version: { type: string }
+        metrics:
+          type: object
+          additionalProperties: { type: number }
+        audit: { $ref: "#/components/schemas/AuditMeta" }
+      required: [prediction, model_version, audit]
