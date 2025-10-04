@@ -3,8 +3,8 @@
 ## Overview
 - Dataset name: (e.g., Synthetic classification dataset)
 - Purpose: Train a simple classification model for demo purposes
-- Owner: <your name>
-- Date: <YYYY-MM-DD>
+- Owner: Rodrigo
+- Date: 2025-10-04
 
 ## Sources & Collection
 - Source: Synthetic via sklearn.make_classification
@@ -34,4 +34,4 @@
 
 ## Maintenance
 - Update cadence: on-demand
-- Point of contact: <your email>
+- Point of contact: <your.email@example.com>

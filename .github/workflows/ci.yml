@@ -31,6 +31,6 @@ jobs:
         run: |
           python ml/train.py
 
-      - name: ML: Drift check (optional)
+      - name: ML: Drift check (gated)
         run: |
-          python ml/drift.py --baseline ml/data/baseline.csv --input ml/data/new_batch.csv || true
+          python ml/drift.py --baseline ml/data/baseline.csv --input ml/data/new_batch.csv

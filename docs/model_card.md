@@ -3,8 +3,8 @@
 ## Overview
 - Model: Logistic Regression (sklearn)
 - Use case: Binary classification (demo)
-- Owner: <your name>
-- Date: <YYYY-MM-DD>
+- Owner: Rodrigo
+- Date: 2025-10-04
 
 ## Intended Use
 - Demo for MLflow logging and serving via /predict
@@ -38,4 +38,4 @@
 - Retraining criteria: drift (PSI) or performance thresholds
 
 ## Contact
-- <your email>
+- <your.email@example.com>
