@@ -295,7 +295,7 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 * [x] `/query` returns **citations** (snippet + source) when `grounded=true`
 * [x] Denylist check + `compliance_flag` (env-based)
 * [x] Retention sweeper (delete audit rows older than `LOG_RETENTION_DAYS`)
-* [ ] README architecture diagram + screenshots (CI, logs, MLflow UI)
+* [x] README architecture diagram + screenshots (CI, logs, MLflow UI)
 
 ### Phase 2 — Agent & MLflow (Stretch)
 
