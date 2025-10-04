@@ -12,6 +12,7 @@ Environment variables (selected):
 - EMBEDDINGS_PROVIDER: local|openai|stub
 - EMBEDDINGS_MODEL: sentence-transformers model or OpenAI embedding model name
 - LC_RAG_ENABLED: enable LangChain RetrievalQA path for grounded queries (default: false)
+- ROUTER_ENABLED: enable simple Router Agent (rules-based) to select intent (default: false)
 - MLFLOW_TRACKING_URI, MLFLOW_EXPERIMENT_NAME: MLflow configuration
 - ML_BASELINE_DATA, ML_INPUT_DATA: paths for drift script defaults
 

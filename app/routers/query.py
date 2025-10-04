@@ -31,6 +31,10 @@ class AuditMeta(BaseModel):
     compliance_flag: bool = False
     prompt_hash: Optional[str] = None
     response_hash: Optional[str] = None
+    # Optional extras (not persisted to DB today)
+    rag_backend: Optional[str] = None
+    router_backend: Optional[str] = None
+    router_intent: Optional[str] = None
 
 
 class Citation(BaseModel):
@@ -43,6 +47,7 @@ class QueryRequest(BaseModel):
     question: str = Field(min_length=3)
     grounded: bool = False
     user_id: Optional[str] = None
+    intent: Optional[str] = Field(default="auto", description="auto|qa|pii_detect|risk_score|other")
 
 
 class QueryResponse(BaseModel):
@@ -70,7 +75,22 @@ def post_query(req: Request, payload: QueryRequest):
     # Initialize retriever if needed and get citations if grounded
     citations: List[Citation] = []
     rag_backend = "legacy"
-    if payload.grounded:
+
+    # Optional router (feature-flagged)
+    intent = (payload.intent or "auto").lower()
+    if os.getenv("ROUTER_ENABLED", "false").lower() in ("1", "true", "yes", "on"):
+        if intent == "auto":
+            try:
+                from app.services.router import route_intent
+
+                intent = route_intent(payload.question, payload.grounded)
+            except Exception:
+                intent = "qa"
+    else:
+        # router disabled: default to qa behavior
+        intent = "qa"
+
+    if intent == "qa" and payload.grounded:
         if not is_allowed_grounded_query(role):
             raise HTTPException(status_code=403, detail="grounded query not allowed for this role")
         # Feature flag for LangChain RetrievalQA path
@@ -137,6 +157,12 @@ def post_query(req: Request, payload: QueryRequest):
     audit_dict = audit.model_dump()
     audit_dict["prompt_version"] = prompt_version
     audit_dict["rag_backend"] = rag_backend
+    try:
+        from app.services.router import get_backend_meta
+        audit_dict["router_backend"] = get_backend_meta()
+        audit_dict["router_intent"] = intent
+    except Exception:
+        pass
     audit = AuditMeta(**audit_dict)
 
     # Persist audit row, ensuring DB is initialized for current DB_URL
@@ -170,6 +196,25 @@ def post_query(req: Request, payload: QueryRequest):
         from app.utils.metrics import tokens_total, cost_usd_total
         tokens_total.labels(endpoint="/query").inc((tp or 0) + (tc or 0))
         cost_usd_total.labels(endpoint="/query").inc(float(audit.cost_usd or 0.0))
+    except Exception:
+        pass
+
+    # Structured logging enrichment for observability
+    try:
+        from app.utils.logger import get_logger
+
+        logger = get_logger("app")
+        extra = {
+            "event": "query_result",
+            "request_id": getattr(req.state, "request_id", None),
+            "rag_backend": rag_backend,
+        }
+        # attach router extras when present
+        if "router_backend" in audit_dict:
+            extra["router_backend"] = audit_dict.get("router_backend")
+        if "router_intent" in audit_dict:
+            extra["router_intent"] = audit_dict.get("router_intent")
+        logger.info(str({k: v for k, v in extra.items() if v is not None}))
     except Exception:
         pass
 

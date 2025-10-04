@@ -430,9 +430,13 @@ uvicorn app.main:app --reload
 * [x] Data Card & Model Card in `docs/`
 
 ### Phase 4 — LangChain RAG + Router Agent
-* Introduce LangChain RetrievalQA for the QA path (feature-flagged)
-* Add Router Agent to route intents: QA (RAG), PII_DETECT, RISK_SCORE, OTHER
-* Preserve current endpoints and behavior with a toggle
+- [x] Feature-flagged LangChain RetrievalQA for grounded QA (LC_RAG_ENABLED)
+- [x] Simple Router Agent (feature-flagged) selects intent (qa, pii_detect, risk_score, other)
+- [x] Audit enrichment: rag_backend, router_backend, router_intent; structured log event
+- [x] Tests and docs updated (flags, API fields, agents overview)
+- [ ] Extend router rules/config and add richer backends (future)
+- [ ] Router Agent UI/docs examples (optional)
+
 
 ### Phase 5 — PII Detection Agent
 * Add PII detector (regex/heuristics; optional spaCy/NER backend)
