@@ -42,6 +42,16 @@ def post_research(req: Request, payload: ResearchRequest):
 
     latency_ms = int((time.perf_counter() - start) * 1000)
 
+    # Prompt registry (non-disruptive): record prompt name/version in audit
+    from app.utils.prompts import load_prompt
+    prompt_name = "research"
+    prompt_version_env = os.getenv("PROMPT_RESEARCH_VERSION")
+    try:
+        loaded = load_prompt(prompt_name, version=prompt_version_env)
+        prompt_version = f"{prompt_name}:{loaded.get('version')}"
+    except Exception:
+        prompt_version = f"{prompt_name}:unknown"
+
     audit = {
         "request_id": getattr(req.state, "request_id", "unknown"),
         "user_id": payload.user_id,
@@ -54,6 +64,7 @@ def post_research(req: Request, payload: ResearchRequest):
         "compliance_flag": bool(flagged),
         "prompt_hash": make_hash(payload.topic),
         "response_hash": make_hash(text_out),
+        "prompt_version": prompt_version,
     }
 
     # Persist audit row

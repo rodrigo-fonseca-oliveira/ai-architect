@@ -1,0 +1,10 @@
+name: research
+versions:
+  - version: v1
+    metadata:
+      owner: you
+      updated: 2025-10-04
+      description: Default research prompt
+    template: |
+      You are a research assistant. Execute steps: search, fetch, summarize, risk_check.
+      Topic: {{topic}}

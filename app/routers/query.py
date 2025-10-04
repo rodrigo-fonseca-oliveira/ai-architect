@@ -97,6 +97,16 @@ def post_query(req: Request, payload: QueryRequest):
 
     latency_ms = int((time.perf_counter() - start) * 1000)
 
+    # Prompt registry (non-disruptive): record prompt name/version in audit
+    from app.utils.prompts import load_prompt, PromptNotFound
+    prompt_name = "query"
+    prompt_version = os.getenv("PROMPT_QUERY_VERSION")
+    try:
+        loaded = load_prompt(prompt_name, version=prompt_version)
+        prompt_version = f"{prompt_name}:{loaded.get('version')}"
+    except Exception:
+        prompt_version = f"{prompt_name}:unknown"
+
     audit = AuditMeta(
         request_id=getattr(req.state, "request_id", "unknown"),
         user_id=payload.user_id,
@@ -110,6 +120,10 @@ def post_query(req: Request, payload: QueryRequest):
         prompt_hash=make_hash(payload.question),
         response_hash=make_hash(answer),
     )
+    # attach as attribute for response consumers
+    audit_dict = audit.model_dump()
+    audit_dict["prompt_version"] = prompt_version
+    audit = AuditMeta(**audit_dict)
 
     # Persist audit row, ensuring DB is initialized for current DB_URL
     try:

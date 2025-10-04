@@ -246,7 +246,7 @@ ai-risk-monitor/
   - /query: grounded=true requires analyst/admin; guest allowed grounded=false
   - /research: guest cannot use `fetch` step; analyst/admin allowed
 * **Data Card & Model Card** in `docs/` (templated Markdown)
-* **Prompt Registry** in `prompts/*.yaml` (versioned, code-reviewed)
+* **Prompt Registry** in `prompts/*.yaml` (versioned, code-reviewed). Load via `app.utils.prompts.load_prompt(name, version)`.
 
 ---
 
