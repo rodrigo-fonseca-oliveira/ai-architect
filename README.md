@@ -269,7 +269,9 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
   * Setup Python, install deps
   * Ruff + mypy + pytest
-  * `python ml/train.py` with small data (fast)
+  * `python ml/train.py` with small data (fast) — logs params/metrics/artifacts to MLflow local path
+  * `python ml/drift.py --baseline ml/data/baseline.csv --input ml/data/new_batch.csv` (deterministic drift check)
+    - Non-fatal by default in CI via `|| true`; remove `|| true` to fail the build on drift > threshold
   * Optionally push “candidate model” tag if metrics ≥ baseline
 * (Optional) CD: deploy container to Render/Fly.io/Cloud Run (later)
 
