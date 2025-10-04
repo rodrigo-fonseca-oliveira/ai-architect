@@ -7,6 +7,8 @@ The Router Agent is a simple, feature-flagged component that selects an intent f
 - Possible intents:
   - qa: question answering (RAG-backed when grounded=true)
   - pii_detect: detect presence of PII in the prompt
+    - Patterns: email, phone, SSN, credit_card (+Luhn), ipv4, ipv6, iban, passport (heuristic)
+    - Config: PII_TYPES (comma-separated) to enable/disable detectors
   - risk_score: assess risk-related questions
   - other: fallback
 

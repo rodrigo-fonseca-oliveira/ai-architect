@@ -13,6 +13,8 @@ Environment variables (selected):
 - EMBEDDINGS_MODEL: sentence-transformers model or OpenAI embedding model name
 - LC_RAG_ENABLED: enable LangChain RetrievalQA path for grounded queries (default: false)
 - ROUTER_ENABLED: enable simple Router Agent (rules-based) to select intent (default: false)
+- PII_TYPES: comma-separated list of detectors to enable (default: email,phone,ssn,credit_card,ipv4)
+- PII_RAG_ENABLED: when true, /pii may include policy citations when grounded=true (default: false)
 - MLFLOW_TRACKING_URI, MLFLOW_EXPERIMENT_NAME: MLflow configuration
 - ML_BASELINE_DATA, ML_INPUT_DATA: paths for drift script defaults
 

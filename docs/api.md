@@ -53,6 +53,10 @@ This service is a FastAPI application for AI risk, compliance, and observability
 - GET /metrics — Prometheus metrics (optionally token-protected)
 - POST /predict — model inference; requires role analyst/admin
 - POST /query — RAG-like simple query; grounded queries require analyst/admin
+- POST /pii — PII detection endpoint (analyst/admin)
+  - Request: { text: str, types?: [str], grounded?: bool }
+  - Response: { summary, entities[], counts, types_present, audit }
+  - Config: PII_TYPES (active detectors), PII_RAG_ENABLED to include policy citations when grounded=true
   - Feature flags:
     - LC_RAG_ENABLED: optional LangChain RetrievalQA backend for grounded QA
     - ROUTER_ENABLED: routes intents (qa, pii_detect, risk_score, other) using simple rules
