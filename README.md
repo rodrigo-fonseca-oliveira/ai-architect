@@ -101,6 +101,10 @@ curl -X POST localhost:8000/query -H "Content-Type: application/json" \
 # 5) Metrics
 # Exposes Prometheus counters & histograms
 curl localhost:8000/metrics | sed -n '1,80p'
+
+# If protected with a token:
+# export METRICS_TOKEN=changeme
+# curl -H "X-Metrics-Token: $METRICS_TOKEN" localhost:8000/metrics | sed -n '1,80p'
 ```
 
 ---
@@ -262,7 +266,7 @@ flowchart LR
 
 * **No secrets** in code; use `.env.example`
 * **RBAC**: roles (`admin`, `analyst`, `guest`) enforced via `X-User-Role` header
-  - /metrics: admin only
+  - /metrics: open by default. To protect, set METRICS_TOKEN and have your scraper send header `X-Metrics-Token: $METRICS_TOKEN`.
   - /predict: analyst/admin
   - /query: grounded=true requires analyst/admin; guest allowed grounded=false
   - /research: guest cannot use `fetch` step; analyst/admin allowed
@@ -308,7 +312,26 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 - Prometheus: http://localhost:9090 (scraping /metrics)
 - Grafana: http://localhost:3000 (admin/admin by default)
   - Datasource and dashboard are auto-provisioned (Prometheus at http://prometheus:9090).
+  - If you set METRICS_TOKEN, update Prometheus to send the header:
+    
+    scrape_configs:
+      - job_name: 'ai-monitor'
+        static_configs:
+          - targets: ['api:8000']
+        metrics_path: /metrics
+        scheme: http
+        headers:
+          X-Metrics-Token: ${METRICS_TOKEN}
+
   - If needed, import dashboard: docs/grafana/ai-monitor-dashboard.json
+
+### CPU-only builds (PyTorch)
+- The Docker images pre-install CPU-only PyTorch wheels to avoid slow CUDA downloads.
+- This is done via:
+  - pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio
+- If you need GPU builds, remove that line and install the default CUDA-enabled wheels (or set the appropriate CUDA index URL) before installing project deps.
+- For reproducibility, you may pin versions, for example:
+  - torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 with the CPU index URL.
 
 ### Deploy on Render (Docker)
 1. Push this repo to GitHub.

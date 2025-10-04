@@ -5,9 +5,25 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-COPY pyproject.toml /app/
+# Toggle CPU/GPU torch via build arg (cpu or a CUDA tag like cu121)
+ARG TORCH_VARIANT=cpu
+ENV TORCH_VARIANT=${TORCH_VARIANT}
+
+# Pre-install PyTorch to avoid slow/large CUDA wheels when pulling transitive deps
+# For CPU: uses https://download.pytorch.org/whl/cpu
+# For CUDA (example cu121): uses https://download.pytorch.org/whl/${TORCH_VARIANT}
 RUN pip install --no-cache-dir -U pip && \
-    pip install --no-cache-dir -r <(python - <<'PY'
+    if [ "$TORCH_VARIANT" = "cpu" ]; then \
+      TORCH_INDEX=https://download.pytorch.org/whl/cpu ; \
+    else \
+      TORCH_INDEX=https://download.pytorch.org/whl/${TORCH_VARIANT} ; \
+    fi && \
+    pip install --no-cache-dir --index-url ${TORCH_INDEX} \
+      torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 || true
+
+COPY pyproject.toml /app/
+# Install project dependencies (will reuse the CPU torch already installed)
+RUN pip install --no-cache-dir -r <(python - <<'PY'
 import tomllib
 import sys
 with open('pyproject.toml','rb') as f:

@@ -4,6 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        TORCH_VARIANT: ${TORCH_VARIANT:-cpu}
     container_name: ai-monitor-api
     environment:
       - APP_ENV=production
@@ -14,6 +16,9 @@ services:
       - VECTORSTORE_PATH=/data/vectorstore
       - DOCS_PATH=/app/examples
       - DB_URL=sqlite:////data/audit.db
+      # Optional: protect /metrics with a token. If unset or empty, /metrics is open.
+      # Set a strong value in production and configure Prometheus to send X-Metrics-Token header.
+      - METRICS_TOKEN=${METRICS_TOKEN:-}
     ports:
       - "8000:8000"
     healthcheck:

@@ -3,7 +3,10 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["app", "db", "scripts"]
+# Use automatic package discovery and include only real Python packages
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*", "db*"]
 
 [project]
 name = "ai-risk-monitor"
@@ -25,7 +28,7 @@ dependencies = [
   "ruff>=0.6.5",
   "chromadb>=0.5.4",
   "sqlalchemy>=2.0.32",
-  "sentence-transformers>=3.0.1",
+  "sentence-transformers==3.0.1",
   "openai>=1.51.2",
   "pymupdf>=1.24.9",
   "mlflow>=2.15.0",

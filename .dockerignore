@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+*.coverage
+.coverage*
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# Git
+.git/
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build and packaging
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# Local data and artifacts
+/local/
+.local/
+.mlruns/
+logs/
+/data/
+/vectorstore/
+
+# Not needed in image
+examples/
+docs/
+architecture/
+.gitattributes
+
+# Env files
+.env
+*.env
+
+# Prometheus/Grafana local data
+prometheus-data/
+grafana-data/
+
+# SQLite local files (keep mounted via volume instead)
+audit.db
+*.db
+*.db-journal

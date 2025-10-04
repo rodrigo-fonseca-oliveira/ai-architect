@@ -6,3 +6,7 @@ scrape_configs:
     static_configs:
       - targets: ['api:8000']
     metrics_path: /metrics
+    # If METRICS_TOKEN is set in the API, uncomment to send it as a header:
+    # scheme: http
+    # headers:
+    #   X-Metrics-Token: ${METRICS_TOKEN}
