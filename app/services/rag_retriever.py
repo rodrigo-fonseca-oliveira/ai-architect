@@ -62,7 +62,7 @@ class RAGRetriever:
             self.emb = LocalEmbeddings(model_name=os.getenv("EMBEDDINGS_MODEL", model))
 
     def ingest(self, docs_path: str):
-        # Simple ingestion: read .txt and .md files
+        # Simple ingestion: read .txt and .md files with idempotency by content hash
         docs = []
         metadatas = []
         ids = []
@@ -72,12 +72,21 @@ class RAGRetriever:
                     p = os.path.join(root, f)
                     with open(p, "r", encoding="utf-8", errors="ignore") as fh:
                         text = fh.read()
+                    rel = os.path.relpath(p, docs_path)
+                    # Deterministic ID: hash of content + relative path
+                    h = hashlib.sha256((rel + "|" + text).encode("utf-8")).hexdigest()
                     docs.append(text)
-                    metadatas.append({"source": os.path.relpath(p, docs_path)})
-                    ids.append(os.path.relpath(p, docs_path))
+                    metadatas.append({"source": rel})
+                    ids.append(h)
         if not docs:
             return 0
         embeddings = self.emb.embed(docs)
+        # Use upsert semantics if available; chromadb collection.add will error on duplicate IDs.
+        # To keep idempotent, we first delete any existing with same IDs, then add.
+        try:
+            self.collection.delete(ids=ids)
+        except Exception:
+            pass
         self.collection.add(documents=docs, embeddings=embeddings, metadatas=metadatas, ids=ids)
         return len(docs)
 

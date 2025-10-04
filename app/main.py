@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 from typing import Callable
 
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -39,6 +41,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AI Risk & Compliance Monitor", version="0.1.0", lifespan=lifespan)
 
+# Exception handlers
+from .utils.exceptions import (
+    http_exception_handler,
+    validation_exception_handler,
+    generic_exception_handler,
+)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
+
 # CORS for local dev
 app.add_middleware(
     CORSMiddleware,
@@ -72,13 +84,15 @@ async def add_request_id_and_log(request: Request, call_next: Callable):
                 "latency_ms": duration_ms,
             }
         )
-        request_count.labels(endpoint=endpoint, status="500").inc()
-        request_latency.labels(endpoint=endpoint).observe(duration_ms / 1000.0)
+        if endpoint != "/metrics":
+            request_count.labels(endpoint=endpoint, status="500").inc()
+            request_latency.labels(endpoint=endpoint).observe(duration_ms / 1000.0)
         raise
     else:
         duration_ms = int((time.perf_counter() - start) * 1000)
-        request_count.labels(endpoint=endpoint, status=str(response.status_code)).inc()
-        request_latency.labels(endpoint=endpoint).observe(duration_ms / 1000.0)
+        if endpoint != "/metrics":
+            request_count.labels(endpoint=endpoint, status=str(response.status_code)).inc()
+            request_latency.labels(endpoint=endpoint).observe(duration_ms / 1000.0)
     finally:
         duration_ms = int((time.perf_counter() - start) * 1000)
         logger.info(
