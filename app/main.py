@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from .routers.metrics import router as metrics_router
 from .routers.query import router as query_router
 from .routers.research import router as research_router
+from .routers.predict import router as predict_router
 from .utils.logger import get_logger
 from .utils.metrics import request_count, request_latency
 
@@ -98,3 +99,4 @@ async def add_request_id_and_log(request: Request, call_next: Callable):
 app.include_router(metrics_router)
 app.include_router(query_router)
 app.include_router(research_router)
+app.include_router(predict_router)
