@@ -307,8 +307,8 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
   ```
 - Prometheus: http://localhost:9090 (scraping /metrics)
 - Grafana: http://localhost:3000 (admin/admin by default)
-  - Add data source: Prometheus URL http://prometheus:9090
-  - Import dashboard: docs/grafana/ai-monitor-dashboard.json
+  - Datasource and dashboard are auto-provisioned (Prometheus at http://prometheus:9090).
+  - If needed, import dashboard: docs/grafana/ai-monitor-dashboard.json
 
 ### Deploy on Render (Docker)
 1. Push this repo to GitHub.

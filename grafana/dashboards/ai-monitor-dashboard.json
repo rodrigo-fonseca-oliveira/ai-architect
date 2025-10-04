@@ -1,0 +1,24 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {"type": "stat", "title": "Request Rate", "id": 1, "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}}, "targets": [{"expr": "sum(rate(app_requests_total[1m]))", "legendFormat": "all", "refId": "A"}], "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0}},
+    {"type": "timeseries", "title": "Requests by endpoint/status", "id": 2, "targets": [{"expr": "sum by (endpoint, status) (rate(app_requests_total[1m]))", "legendFormat": "{{endpoint}} {{status}}", "refId": "A"}], "gridPos": {"h": 8, "w": 16, "x": 8, "y": 0}},
+    {"type": "timeseries", "title": "Latency (p95)", "id": 3, "targets": [{"expr": "histogram_quantile(0.95, sum(rate(app_request_latency_seconds_bucket[5m])) by (le, endpoint))", "legendFormat": "{{endpoint}}", "refId": "A"}], "gridPos": {"h": 8, "w": 16, "x": 0, "y": 6}},
+    {"type": "timeseries", "title": "Tokens total by endpoint", "id": 4, "targets": [{"expr": "sum by (endpoint) (rate(app_tokens_total[1m]))", "legendFormat": "{{endpoint}}", "refId": "A"}], "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14}},
+    {"type": "timeseries", "title": "Cost USD total by endpoint", "id": 5, "targets": [{"expr": "sum by (endpoint) (rate(app_cost_usd_total[1m]))", "legendFormat": "{{endpoint}}", "refId": "A"}], "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14}}
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["ai-monitor"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "AI Monitor Dashboard",
+  "version": 1
+}
