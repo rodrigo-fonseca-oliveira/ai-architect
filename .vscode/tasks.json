@@ -50,6 +50,24 @@
       "options": {
         "cwd": "${workspaceFolder}"
       }
+    },
+    {
+      "label": "ML: Train model",
+      "type": "shell",
+      "command": ". .venv/bin/activate && python ml/train.py",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "ML: Check drift",
+      "type": "shell",
+      "command": ". .venv/bin/activate && python ml/drift.py",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
     }
   ]
 }

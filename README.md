@@ -190,6 +190,16 @@ ai-risk-monitor/
   Input: `{ features: {...} }`
   Output: `{ prediction, model_version, request_id }`
 
+  Example:
+  ```bash
+  # Train a tiny model (local MLflow)
+  . .venv/bin/activate && python ml/train.py
+
+  # Predict using latest run artifact
+  curl -X POST localhost:8000/predict -H "Content-Type: application/json" \
+    -d '{"features": {"f0": 0.1, "f1": -0.2, "f2": 0.3, "f3": 0.0, "f4": 0.2, "f5": -0.1, "f6": 0.0, "f7": 0.0}}'
+  ```
+
 * `GET /metrics` → Prometheus text (latency, tokens, cost, requests)
 
 * `GET /healthz` → liveness probe
@@ -279,7 +289,7 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
   - `. .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 | tee logs/app.log`
   - Open `logs/app.log` for a compact JSON log screenshot
 - Metrics: `curl localhost:8000/metrics` and capture counters/histograms
-- MLflow UI (Phase 2): when implemented, run MLflow UI pointing to `./.mlruns` and capture a screenshot
+- MLflow UI: launch with `mlflow ui --backend-store-uri ./.mlruns` then open http://127.0.0.1:5000 and capture
 
 ---
 
@@ -316,9 +326,9 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
 * [x] `/research`: search → fetch → summarize → risk_check
 * [x] Agent **step audit** (tool name, args, latency, hash)
-* [ ] ML: `ml/train.py` → MLflow; register best model
-* [ ] `/predict` pulls model from MLflow registry
-* [ ] `ml/drift.py` (PSI/KS) + “retrain recommended” flag
+* [x] ML: `ml/train.py` → MLflow (local) logs params/metrics/artifacts
+* [x] `/predict` loads latest model from MLflow local store
+* [x] `ml/drift.py` (PSI) + “retrain recommended” flag
 * [ ] CI runs tiny `train.py` and `drift.py` on PR
 
 ### Phase 3 — Polish & Wow (Later)
