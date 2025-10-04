@@ -446,9 +446,10 @@ uvicorn app.main:app --reload
 - [ ] Compose with RAG policy citations (cross-intent) in future
 
 ### Phase 6 — Risk Scoring Agent
-* Lightweight classifier for feature descriptions (low/medium/high)
-* Compose with RAG-based explanations and mitigations
-* Add metrics/audit fields for routed path and confidences
+- [x] Initial heuristic scorer and POST /risk endpoint (analyst/admin)
+- [x] Router integration: risk_score intent enriches audit and sets concise answer
+- [ ] Optional ML scorer (scikit-learn) gated by RISK_ML_ENABLED
+- [ ] Confidence calibration, thresholds, and RAG-based mitigations/explanations
 
 ### Phase 7 — Memory (short-term and long-term)
 * Short-term conversation memory (buffer/summary) per session_id
