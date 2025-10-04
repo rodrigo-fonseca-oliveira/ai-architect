@@ -1,0 +1,79 @@
+import os
+import time
+from typing import List
+
+from fastapi import APIRouter, HTTPException, Request
+
+from app.schemas.research import ResearchRequest, ResearchResponse, AgentStep, Finding
+from app.services.agent import Agent
+from app.utils.audit import make_hash, write_audit
+from app.utils.cost import estimate_tokens_and_cost
+from db.session import init_db, get_session
+
+router = APIRouter()
+
+
+@router.post("/research", response_model=ResearchResponse)
+def post_research(req: Request, payload: ResearchRequest):
+    start = time.perf_counter()
+
+    if not payload.topic or len(payload.topic.strip()) < 3:
+        raise HTTPException(status_code=400, detail="topic too short")
+
+    steps = payload.steps or ["search", "fetch", "summarize", "risk_check"]
+    for s in steps:
+        if s not in ["search", "fetch", "summarize", "risk_check"]:
+            raise HTTPException(status_code=400, detail=f"unsupported step: {s}")
+
+    agent = Agent()
+    findings, sources, audit_steps, flagged = agent.run(payload.topic, steps)
+
+    # Token & cost (very rough)
+    model = os.getenv("LLM_MODEL", "gpt-4o-mini")
+    text_out = "\n".join([f.get("summary", "") for f in findings])
+    tp, tc, cost = estimate_tokens_and_cost(model=model, prompt=payload.topic, completion=text_out)
+
+    latency_ms = int((time.perf_counter() - start) * 1000)
+
+    audit = {
+        "request_id": getattr(req.state, "request_id", "unknown"),
+        "user_id": payload.user_id,
+        "endpoint": "/research",
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "tokens_prompt": tp,
+        "tokens_completion": tc,
+        "cost_usd": round(cost, 6),
+        "latency_ms": latency_ms,
+        "compliance_flag": bool(flagged),
+        "prompt_hash": make_hash(payload.topic),
+        "response_hash": make_hash(text_out),
+    }
+
+    # Persist audit row
+    try:
+        init_db()
+    except Exception:
+        pass
+    db = get_session()
+    try:
+        write_audit(
+            db,
+            request_id=audit["request_id"],
+            endpoint=audit["endpoint"],
+            user_id=audit["user_id"],
+            tokens_prompt=audit["tokens_prompt"],
+            tokens_completion=audit["tokens_completion"],
+            cost_usd=audit["cost_usd"],
+            latency_ms=audit["latency_ms"],
+            compliance_flag=audit["compliance_flag"],
+            prompt_hash=audit["prompt_hash"],
+            response_hash=audit["response_hash"],
+        )
+    finally:
+        db.close()
+
+    # Build response models
+    out_findings: List[Finding] = [Finding(**f) for f in findings]
+    out_steps: List[AgentStep] = [AgentStep(**s) for s in audit_steps]
+
+    return ResearchResponse(findings=out_findings, sources=sources, steps=out_steps, audit=audit)
