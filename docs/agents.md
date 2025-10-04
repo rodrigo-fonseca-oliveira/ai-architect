@@ -28,4 +28,5 @@ Extending the router:
 
 Observability:
 - router_intent and rag_backend are included in the /query audit row for analytics.
-- You can also add them to structured logs (see below) for centralized log analysis.
+- When the router selects pii_detect, the audit includes pii_entities_count, pii_types, and pii_counts.
+- Structured logs include query_result events with rag_backend/router_backend/router_intent.

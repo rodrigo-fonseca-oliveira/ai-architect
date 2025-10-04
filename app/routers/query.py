@@ -35,6 +35,10 @@ class AuditMeta(BaseModel):
     rag_backend: Optional[str] = None
     router_backend: Optional[str] = None
     router_intent: Optional[str] = None
+    # PII detection extras (router intent)
+    pii_entities_count: Optional[int] = None
+    pii_types: Optional[list] = None
+    pii_counts: Optional[dict] = None
 
 
 class Citation(BaseModel):
@@ -90,7 +94,23 @@ def post_query(req: Request, payload: QueryRequest):
         # router disabled: default to qa behavior
         intent = "qa"
 
-    if intent == "qa" and payload.grounded:
+    if intent == "pii_detect":
+        try:
+            from app.services.pii_detector import detect_pii
+
+            result = detect_pii(payload.question)
+            # Summarize in the human answer
+            if result.get("total", 0) > 0:
+                parts = [f"{k}({v})" for k, v in sorted(result.get("counts", {}).items())]
+                answer_summary = ", ".join(parts)
+                answer = f"Detected PII: {answer_summary}."
+            else:
+                answer = "No PII detected."
+            # Temporarily stash PII result in local var for audit enrichment later
+            req.state._pii_result = result  # type: ignore[attr-defined]
+        except Exception:
+            answer = "PII detection unavailable."
+    elif intent == "qa" and payload.grounded:
         if not is_allowed_grounded_query(role):
             raise HTTPException(status_code=403, detail="grounded query not allowed for this role")
         # Feature flag for LangChain RetrievalQA path
@@ -163,6 +183,16 @@ def post_query(req: Request, payload: QueryRequest):
         audit_dict["router_intent"] = intent
     except Exception:
         pass
+    # Attach PII extras when present (non-breaking)
+    if intent == "pii_detect":
+        try:
+            pii_result = getattr(req.state, "_pii_result", None)
+            if pii_result:
+                audit_dict["pii_entities_count"] = pii_result.get("total", 0)
+                audit_dict["pii_types"] = pii_result.get("types_present", [])
+                audit_dict["pii_counts"] = pii_result.get("counts", {})
+        except Exception:
+            pass
     audit = AuditMeta(**audit_dict)
 
     # Persist audit row, ensuring DB is initialized for current DB_URL

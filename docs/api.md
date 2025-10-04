@@ -71,6 +71,7 @@ This service is a FastAPI application for AI risk, compliance, and observability
   - If intent not provided or set to "auto", the router picks an intent using simple rules (see docs/agents.md).
   - For qa + grounded=true, RAG citations are returned as before, and LC_RAG_ENABLED can switch the backend.
 - Audit enrichment: router_backend and router_intent are included in the /query response audit field.
+- When intent=pii_detect, the answer summarizes detections and the audit includes pii_entities_count, pii_types, and pii_counts.
 
 
 See Swagger (/docs) for full request/response schemas and try-it-out.
