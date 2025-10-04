@@ -30,7 +30,46 @@ Client → FastAPI Gateway
     [Structured logs + Request IDs + Token/Cost tracker + RBAC stub]
 ```
 
-`architecture/ai_monitor_diagram.png` (add a PNG or Mermaid later)
+Architecture (Mermaid)
+
+```mermaid
+flowchart TD
+    A[Client] -->|HTTP| B[FastAPI Gateway]
+    B --> C[/query]
+    B --> D[/research]
+    B --> E[/predict]
+    B --> F[/metrics]
+    B --> G[/healthz]
+
+    C --> C1[LLM Stub / Gateway]
+    C --> C2[RAG Retriever (Chroma)]
+    C2 --> C3[(VectorStore)]
+
+    D --> D1[Agent Orchestrator]
+    D1 --> D2[Tools (search/fetch/summarize)]
+
+    E --> E1[MLflow Client]
+    E1 --> E2[(MLflow Registry)]
+
+    B --> H[Audit Writer]
+    H --> H1[(SQLite: audit)]
+
+    B --> I[Cost Tracker]
+
+    F --> J[Prometheus Metrics]
+
+    subgraph Observability
+      H
+      I
+      J
+    end
+
+    subgraph Data
+      C3
+      H1
+      E2
+    end
+```
 
 ---
 
@@ -213,11 +252,19 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
 ## 12) Demo Script (90 seconds)
 
-1. `docker compose up` → hit `/healthz`
+1. `uvicorn app.main:app` → hit `/healthz`
 2. `POST /query` with grounded=true → show citations + cost
 3. `GET /metrics` → point out latency, tokens, cost
 4. Open `audit` table → show request row (hashes, flags, role)
-5. Run `python ml/drift.py` → show drift flag → (optional) retrain action
+5. (Later) Run `python ml/drift.py` → show drift flag → (optional) retrain action
+
+### Screenshots (what to capture)
+- CI: GitHub Actions run for main showing green checks
+- Logs: Run API and capture JSON logs
+  - `. .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 | tee logs/app.log`
+  - Open `logs/app.log` for a compact JSON log screenshot
+- Metrics: `curl localhost:8000/metrics` and capture counters/histograms
+- MLflow UI (Phase 2): when implemented, run MLflow UI pointing to `./.mlruns` and capture a screenshot
 
 ---
 
