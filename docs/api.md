@@ -52,11 +52,12 @@ This service is a FastAPI application for AI risk, compliance, and observability
 - GET /healthz — liveness probe
 - GET /metrics — Prometheus metrics (optionally token-protected)
 - POST /predict — model inference; requires role analyst/admin
-- POST /query — RAG-like simple query; grounded queries require analyst/admin
-- POST /pii — PII detection endpoint (analyst/admin)
-  - Request: { text: str, types?: [str], grounded?: bool }
-  - Response: { summary, entities[], counts, types_present, audit }
-  - Config: PII_TYPES (active detectors), PII_RAG_ENABLED to include policy citations when grounded=true
+- POST /query
+
+Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, intent?: str }
+  - Response: { answer, citations?, audit }
+  - Notes: session_id enables short-term memory grouping when MEMORY_SHORT_ENABLED=true
+  - Config: LC_RAG_ENABLED (LangChain RAG), ROUTER_ENABLED (intent routing)
 - POST /risk — Risk scoring endpoint (analyst/admin)
   - Request: { text: str }
   - Response: { label, value, rationale, audit }
