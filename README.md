@@ -168,8 +168,23 @@ ai-risk-monitor/
   Output: `{ answer, citations[], request_id, tokens, cost_usd }`
 
 * `POST /research`
-  Input: `{ topic: str, steps?: ["search","fetch","summarize"] }`
-  Output: `{ findings[], sources[], audit_trace[], request_id }`
+  Input: `{ topic: str, steps?: ["search","fetch","summarize","risk_check"] }`
+  Output: `{ findings[], sources[], steps[], audit }`
+
+  Example:
+  ```bash
+  curl -X POST localhost:8000/research -H "Content-Type: application/json" \
+    -d '{
+      "topic": "Latest updates on GDPR and AI",
+      "steps": ["search","fetch","summarize","risk_check"]
+    }'
+  ```
+
+  Notes:
+  - Deterministic, offline-friendly by default (AGENT_LIVE_MODE=false).
+  - Step-level audit is included (name, inputs, outputs preview, latency, hash, timestamp).
+  - Denylist terms flagged into audit.compliance_flag.
+  - To enable live fetch, set `AGENT_LIVE_MODE=true` and optionally `AGENT_URL_ALLOWLIST` (comma-separated prefixes).
 
 * `POST /predict`
   Input: `{ features: {...} }`
@@ -299,8 +314,8 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
 ### Phase 2 — Agent & MLflow (Stretch)
 
-* [ ] `/research`: search → fetch → summarize → risk_check
-* [ ] Agent **step audit** (tool name, args, latency, hash)
+* [x] `/research`: search → fetch → summarize → risk_check
+* [x] Agent **step audit** (tool name, args, latency, hash)
 * [ ] ML: `ml/train.py` → MLflow; register best model
 * [ ] `/predict` pulls model from MLflow registry
 * [ ] `ml/drift.py` (PSI/KS) + “retrain recommended” flag
