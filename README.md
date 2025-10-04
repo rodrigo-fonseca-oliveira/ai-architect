@@ -48,9 +48,10 @@ python3 -m venv .venv
 pip install -e .
 
 # 2) Ingest docs for RAG (Phase 1)
-# Place a few .txt/.md files under DOCS_PATH (see .env). Example:
+# Place a few .txt/.md (and now .pdf) files under DOCS_PATH (see .env). Example:
 mkdir -p examples
 printf "GDPR is a regulation in EU about data protection.\n" > examples/gdpr.txt
+# You can also drop PDFs (basic text extraction via PyMuPDF).
 python scripts/ingest_docs.py
 
 # 3) Run locally

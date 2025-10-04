@@ -27,6 +27,7 @@ dependencies = [
   "sqlalchemy>=2.0.32",
   "sentence-transformers>=3.0.1",
   "openai>=1.51.2",
+  "pymupdf>=1.24.9",
 ]
 
 
