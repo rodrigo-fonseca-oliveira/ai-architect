@@ -26,3 +26,11 @@ jobs:
         run: |
           pip install pytest httpx anyio
           pytest -q
+
+      - name: ML: Train tiny model
+        run: |
+          python ml/train.py
+
+      - name: ML: Drift check (optional)
+        run: |
+          python ml/drift.py --baseline ml/data/baseline.csv --input ml/data/new_batch.csv || true
