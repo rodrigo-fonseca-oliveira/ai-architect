@@ -10,6 +10,7 @@ from ..utils.audit import make_hash, write_audit
 from ..utils.cost import estimate_tokens_and_cost
 from db.session import get_session
 from ..services.rag_retriever import RAGRetriever
+from app.utils.rbac import parse_role, is_allowed_grounded_query
 
 router = APIRouter()
 
@@ -63,9 +64,14 @@ def post_query(req: Request, payload: QueryRequest):
     if len(payload.question.strip()) < 3:
         raise HTTPException(status_code=400, detail="question too short")
 
+    # RBAC grounded policy
+    role = parse_role(req)
+
     # Initialize retriever if needed and get citations if grounded
     citations: List[Citation] = []
     if payload.grounded:
+        if not is_allowed_grounded_query(role):
+            raise HTTPException(status_code=403, detail="grounded query not allowed for this role")
         # Always create retriever from current env to avoid stale path/provider
         provider = os.getenv("EMBEDDINGS_PROVIDER", os.getenv("LLM_PROVIDER", "local"))
         vector_path = os.getenv("VECTORSTORE_PATH", "./.local/vectorstore")

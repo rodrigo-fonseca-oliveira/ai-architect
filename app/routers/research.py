@@ -9,6 +9,7 @@ from app.services.agent import Agent
 from app.utils.audit import make_hash, write_audit
 from app.utils.cost import estimate_tokens_and_cost
 from db.session import init_db, get_session
+from app.utils.rbac import parse_role, is_allowed_agent_step
 
 router = APIRouter()
 
@@ -24,6 +25,12 @@ def post_research(req: Request, payload: ResearchRequest):
     for s in steps:
         if s not in ["search", "fetch", "summarize", "risk_check"]:
             raise HTTPException(status_code=400, detail=f"unsupported step: {s}")
+
+    # RBAC step policy: guests cannot use 'fetch'
+    role = parse_role(req)
+    for s in steps:
+        if not is_allowed_agent_step(role, s):
+            raise HTTPException(status_code=403, detail=f"step '{s}' not allowed for this role")
 
     agent = Agent()
     findings, sources, audit_steps, flagged = agent.run(payload.topic, steps)

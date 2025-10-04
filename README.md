@@ -240,7 +240,11 @@ ai-risk-monitor/
 ## 9) Security & Governance
 
 * **No secrets** in code; use `.env.example`
-* **RBAC placeholder**: roles (`admin`, `analyst`, `guest`) enforced in routers
+* **RBAC**: roles (`admin`, `analyst`, `guest`) enforced via `X-User-Role` header
+  - /metrics: admin only
+  - /predict: analyst/admin
+  - /query: grounded=true requires analyst/admin; guest allowed grounded=false
+  - /research: guest cannot use `fetch` step; analyst/admin allowed
 * **Data Card & Model Card** in `docs/` (templated Markdown)
 * **Prompt Registry** in `prompts/*.yaml` (versioned, code-reviewed)
 
@@ -350,10 +354,10 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
 ### Phase 3 — Polish & Wow (Later)
 
-* [ ] Role-based access checks (admin/analyst/guest)
+* [x] Role-based access checks (admin/analyst/guest)
 * [ ] Prompt registry (`prompts/*.yaml`) + loader
 * [ ] Plotly mini dashboard (cost/day, drift status)
-* [ ] Dockerized one-click deploy (Render/Fly/Cloud Run)
+* [x] Dockerized one-click deploy (Render)
 * [ ] Data Card & Model Card in `docs/`
 
 ---
@@ -374,13 +378,4 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
 Apache-2.0 (or MIT). Add `LICENSE` file.
 
----
 
-### Tips for implementation with refact.ai
-
-* Start from the **Phase 0** checklist; open small PRs (“feat: audit table,” “feat: /query stub,” “chore: CI”).
-* Generate boilerplate with the agent; keep **commits clean** and **PR descriptions crisp**.
-* Add **screenshots** (CI run, MLflow UI, /metrics curl) even if you use local stubs first.
-* If time is tight, ship **Phase 0 + half of Phase 1**; the README and roadmap will still look very “architect-level.”
-
-If you want, I can also draft the `.env.example`, `ci.yml`, and a minimal `main.py` + `/query` stub you can paste in to hit the ground running.

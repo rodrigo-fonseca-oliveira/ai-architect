@@ -25,6 +25,7 @@ def test_query_with_rag_citations(tmp_path, monkeypatch):
     r = client.post(
         "/query",
         json={"question": "What is GDPR?", "grounded": True},
+        headers={"X-User-Role": "analyst"},
     )
     assert r.status_code == 200
     data = r.json()

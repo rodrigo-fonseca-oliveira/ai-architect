@@ -2,10 +2,11 @@ import os
 import time
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 
 from app.schemas.predict import PredictRequest, PredictResponse
 from app.services.mlflow_client import MLflowClientWrapper
+from app.utils.rbac import require_role
 from app.utils.audit import make_hash, write_audit
 from app.utils.cost import estimate_tokens_and_cost
 from db.session import init_db, get_session
@@ -14,7 +15,7 @@ router = APIRouter()
 
 
 @router.post("/predict", response_model=PredictResponse)
-def post_predict(req: Request, payload: PredictRequest):
+def post_predict(req: Request, payload: PredictRequest, role: str = Depends(require_role("analyst"))):
     start = time.perf_counter()
 
     if not isinstance(payload.features, dict) or not payload.features:
