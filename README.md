@@ -387,7 +387,7 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
 * [x] Role-based access checks (admin/analyst/guest)
 * [x] Prompt registry (`prompts/*.yaml`) + loader
-* [ ] Plotly mini dashboard (cost/day, drift status)
+* [x] Grafana dashboard (pre-provisioned via docker-compose)
 * [x] Dockerized one-click deploy (Render)
 * [ ] Data Card & Model Card in `docs/`
 
