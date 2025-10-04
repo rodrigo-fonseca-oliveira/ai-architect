@@ -1,0 +1,54 @@
+version: '3.8'
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-monitor-api
+    environment:
+      - APP_ENV=production
+      - LOG_LEVEL=INFO
+      - PROMETHEUS_ENABLED=true
+      - REQUEST_ID_HEADER=X-Request-ID
+      - EMBEDDINGS_PROVIDER=stub
+      - VECTORSTORE_PATH=/data/vectorstore
+      - DOCS_PATH=/app/examples
+      - DB_URL=sqlite:////data/audit.db
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - ./examples:/app/examples:ro
+      - ./data:/data
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ai-monitor-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ai-monitor-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  grafana-data:

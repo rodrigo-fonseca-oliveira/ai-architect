@@ -235,6 +235,27 @@ ai-risk-monitor/
 * **Tool calls audited** (name, args, latency, result hash)
 * Safety hook blocks disallowed tools (documented in README)
 
+### Agent Flow (Mermaid)
+```mermaid
+flowchart LR
+    T[Topic] --> S[search]
+    S --> F[fetch]
+    F --> U[summarize]
+    U --> R[risk_check]
+
+    subgraph Audit
+      A1[step.name]
+      A2[inputs]
+      A3[outputs preview]
+      A4[latency & hash]
+    end
+
+    S --> A1
+    F --> A2
+    U --> A3
+    R --> A4
+```
+
 ---
 
 ## 9) Security & Governance
@@ -278,6 +299,16 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
     - Non-fatal by default in CI via `|| true`; remove `|| true` to fail the build on drift > threshold
   * Optionally push “candidate model” tag if metrics ≥ baseline
 * (Optional) CD: deploy container to Render/Fly.io/Cloud Run (later)
+
+### Local Observability Stack (Prometheus + Grafana)
+- Start everything:
+  ```bash
+  docker compose up --build
+  ```
+- Prometheus: http://localhost:9090 (scraping /metrics)
+- Grafana: http://localhost:3000 (admin/admin by default)
+  - Add data source: Prometheus URL http://prometheus:9090
+  - Import dashboard: docs/grafana/ai-monitor-dashboard.json
 
 ### Deploy on Render (Docker)
 1. Push this repo to GitHub.
