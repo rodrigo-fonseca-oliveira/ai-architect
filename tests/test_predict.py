@@ -11,7 +11,8 @@ def test_predict_after_train(tmp_path, monkeypatch):
 
     import subprocess
 
-    subprocess.check_call(["python", "ml/train.py"])  # should create a run and model artifact
+    import sys
+    subprocess.check_call([sys.executable, "ml/train.py"])  # should create a run and model artifact
 
     client = TestClient(app)
     # Features: we don't know the exact order; our predict sorts keys alphabetically

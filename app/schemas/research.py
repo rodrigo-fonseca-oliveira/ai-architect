@@ -25,8 +25,10 @@ class Finding(BaseModel):
     url: Optional[str] = None
 
 
+from pydantic import Field
+
 class ResearchResponse(BaseModel):
     findings: List[Finding]
     sources: List[str]
     audit: Dict[str, Any]
-    steps: List[AgentStep] = []
+    steps: List[AgentStep] = Field(default_factory=list)

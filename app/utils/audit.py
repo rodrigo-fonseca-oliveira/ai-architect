@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from db.models import Audit
+from app.utils.logger import get_logger
 
 
 def make_hash(value: Optional[str]) -> Optional[str]:
@@ -15,6 +16,7 @@ def make_hash(value: Optional[str]) -> Optional[str]:
 
 
 def write_audit(db: Session, **kwargs) -> Audit:
+    logger = get_logger(__name__)
     # Map incoming fields and default created_at
     record = Audit(
         request_id=kwargs.get("request_id"),
@@ -29,7 +31,12 @@ def write_audit(db: Session, **kwargs) -> Audit:
         prompt_hash=kwargs.get("prompt_hash"),
         response_hash=kwargs.get("response_hash"),
     )
-    db.add(record)
-    db.commit()
-    db.refresh(record)
+    try:
+        db.add(record)
+        db.commit()
+        db.refresh(record)
+    except Exception as e:  # noqa: BLE001
+        db.rollback()
+        # Log but do not raise, so API flow can continue
+        logger.error("audit_write_failed", extra={"request_id": kwargs.get("request_id"), "error": str(e)})
     return record

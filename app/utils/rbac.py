@@ -24,6 +24,17 @@ def is_allowed_grounded_query(role: str) -> bool:
 
 
 def is_allowed_agent_step(role: str, step: str) -> bool:
-    if step == "fetch":
-        return ROLE_ORDER.get(role, 0) >= ROLE_ORDER["analyst"]
-    return True
+    # Explicit per-step minimum roles; default deny for unknown steps
+    step_min_role = {
+        "fetch": "analyst",
+        "search": "analyst",
+        "summarize": "analyst",
+        # risk_check is local evaluation and safe for all roles
+        "risk_check": "guest",
+    }
+    min_role = step_min_role.get(step)
+    if min_role is None:
+        return False
+    # Unknown roles are denied (-1)
+    role_val = ROLE_ORDER.get(role, -1)
+    return role_val >= ROLE_ORDER[min_role]
