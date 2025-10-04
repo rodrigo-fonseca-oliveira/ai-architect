@@ -355,7 +355,7 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 ### Phase 3 — Polish & Wow (Later)
 
 * [x] Role-based access checks (admin/analyst/guest)
-* [ ] Prompt registry (`prompts/*.yaml`) + loader
+* [x] Prompt registry (`prompts/*.yaml`) + loader
 * [ ] Plotly mini dashboard (cost/day, drift status)
 * [x] Dockerized one-click deploy (Render)
 * [ ] Data Card & Model Card in `docs/`
