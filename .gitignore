@@ -23,6 +23,9 @@ Thumbs.db
 # IDE
 .vscode/settings.json
 
+# Env files
+.env
+
 # Chroma persistence (handled via .local/ but keep explicit)
 chroma.sqlite3
 

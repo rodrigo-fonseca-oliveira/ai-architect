@@ -24,11 +24,25 @@ def extract_pdf_text(path: str) -> str:
     return "\n".join(text_parts)
 
 
+def chunk_text(text: str, size: int = 1000, overlap: int = 200):
+    if size <= 0:
+        yield 0, text
+        return
+    start = 0
+    n = len(text)
+    while start < n:
+        end = min(n, start + size)
+        yield start, text[start:end]
+        if end == n:
+            break
+        start = max(0, end - overlap)
+
+
 def main():
     os.makedirs(VECTORSTORE_PATH, exist_ok=True)
     retriever = RAGRetriever(persist_path=VECTORSTORE_PATH, provider=EMBEDDINGS_PROVIDER)
 
-    # Custom ingestion to include PDFs
+    # Custom ingestion to include PDFs and chunking
     docs = []
     metadatas = []
     ids = []
@@ -36,23 +50,24 @@ def main():
         for f in files:
             p = os.path.join(root, f)
             rel = os.path.relpath(p, DOCS_PATH)
+            text = None
             if f.lower().endswith((".txt", ".md")):
                 with open(p, "r", encoding="utf-8", errors="ignore") as fh:
                     text = fh.read()
-                docs.append(text)
-                metadatas.append({"source": rel})
-                ids.append(rel)
             elif f.lower().endswith(".pdf"):
                 try:
                     text = extract_pdf_text(p)
-                    if text.strip():
-                        docs.append(text)
-                        metadatas.append({"source": rel})
-                        ids.append(rel)
                 except Exception as e:
                     print(f"[warn] failed to extract PDF '{rel}': {e}")
+            if not text:
+                continue
+            for idx, chunk in chunk_text(text, size=1000, overlap=200):
+                chunk_id = f"{rel}#chunk-{idx}"
+                docs.append(chunk)
+                metadatas.append({"source": rel, "offset": idx})
+                ids.append(chunk_id)
+
     if docs:
-        # Use retriever's embedding function + collection add path
         embeddings = retriever.emb.embed(docs)
         retriever.collection.add(documents=docs, embeddings=embeddings, metadatas=metadatas, ids=ids)
         count = len(docs)

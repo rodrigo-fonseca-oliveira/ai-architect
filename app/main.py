@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from .routers.metrics import router as metrics_router
 from .routers.query import router as query_router
 from .utils.logger import get_logger
+from .utils.metrics import request_count, request_latency
 
 load_dotenv()
 
@@ -54,29 +55,35 @@ async def add_request_id_and_log(request: Request, call_next: Callable):
     request.state.request_id = req_id
 
     response: Response = Response(status_code=500)
+    endpoint = request.url.path
     try:
         response = await call_next(request)
     except Exception as e:
-        # Log and re-raise to preserve behavior
         duration_ms = int((time.perf_counter() - start) * 1000)
         logger.error(
             {
                 "event": "request_error",
                 "method": request.method,
-                "path": request.url.path,
+                "path": endpoint,
                 "error": str(e),
                 "request_id": req_id,
                 "latency_ms": duration_ms,
             }
         )
+        request_count.labels(endpoint=endpoint, status="500").inc()
+        request_latency.labels(endpoint=endpoint).observe(duration_ms / 1000.0)
         raise
+    else:
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        request_count.labels(endpoint=endpoint, status=str(response.status_code)).inc()
+        request_latency.labels(endpoint=endpoint).observe(duration_ms / 1000.0)
     finally:
         duration_ms = int((time.perf_counter() - start) * 1000)
         logger.info(
             {
                 "event": "request",
                 "method": request.method,
-                "path": request.url.path,
+                "path": endpoint,
                 "status_code": getattr(response, "status_code", -1),
                 "request_id": req_id,
                 "latency_ms": duration_ms,

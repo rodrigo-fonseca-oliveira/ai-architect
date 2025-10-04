@@ -58,7 +58,10 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 # 4) Smoke test
 curl -X POST localhost:8000/query -H "Content-Type: application/json" \
   -d '{"question":"What is GDPR?", "grounded": true}'
-curl localhost:8000/metrics
+
+# 5) Metrics
+# Exposes Prometheus counters & histograms
+curl localhost:8000/metrics | sed -n '1,80p'
 ```
 
 ---

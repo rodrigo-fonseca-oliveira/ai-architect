@@ -131,4 +131,12 @@ def post_query(req: Request, payload: QueryRequest):
     finally:
         db.close()
 
+    # Update metrics
+    try:
+        from app.utils.metrics import tokens_total, cost_usd_total
+        tokens_total.labels(endpoint="/query").inc((tp or 0) + (tc or 0))
+        cost_usd_total.labels(endpoint="/query").inc(float(audit.cost_usd or 0.0))
+    except Exception:
+        pass
+
     return QueryResponse(answer=answer, citations=citations, audit=audit)
