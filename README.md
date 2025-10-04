@@ -437,6 +437,16 @@ uvicorn app.main:app --reload
 - [ ] Extend router rules/config and add richer backends (future)
 - [ ] Router Agent UI/docs examples (optional)
 
+### Phase 5 — PII Detection Agent
+- [x] Regex-based PII detection agent (email, phone, SSN, IPv4, credit_card + Luhn)
+- [x] Extended patterns (IPv6, IBAN, passport)
+- [x] /pii endpoint with masked previews; configurable PII_TYPES and PII_RAG_ENABLED
+- [x] Router integration adds pii_* audit fields
+
+### Phase 6 — Risk Scoring Agent
+- [x] Heuristic risk scorer and /risk endpoint
+- [x] Router integration adds risk_* audit fields
+
 
 ### Phase 5 — PII Detection Agent
 - [x] Initial PII detector (regex/heuristics) with masked previews and router integration
@@ -452,9 +462,12 @@ uvicorn app.main:app --reload
 - [ ] Confidence calibration, thresholds, and RAG-based mitigations/explanations
 
 ### Phase 7 — Memory (short-term and long-term)
-* Short-term conversation memory (buffer/summary) per session_id
-* Long-term semantic memory (user/org facts) with RBAC and retention
-* Endpoints to list/clear memory; integrate read/write into chains
+- [x] Short-term conversation memory (buffer + rolling summary) per session_id
+- [x] Long-term in-process semantic memory (user facts) with retrieval and ingestion
+- [x] /query integration: optional session_id, reads/writes, rolling summary after max turns
+- [x] Audit enrichment: memory_short_reads/writes, summary_updated, memory_long_reads/writes
+- [x] Docs and tests for memory
+- [ ] Endpoints to list/clear memory; RBAC and retention policies
 
 ### Phase 8 — Agentic workflows and polish
 * Policy Navigator Agent (decompose → retrieve → synthesize → recommend)
