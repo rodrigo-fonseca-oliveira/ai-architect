@@ -439,9 +439,11 @@ uvicorn app.main:app --reload
 
 
 ### Phase 5 — PII Detection Agent
-* Add PII detector (regex/heuristics; optional spaCy/NER backend)
-* Router path: detect → return entities + policy citations via RAG
-* Tests and scenario guide entries (payload paste, remediation hints)
+- [x] Initial PII detector (regex/heuristics) with masked previews and router integration
+- [x] Tests and docs for pii_detect intent and audit fields
+- [ ] Extend patterns (IBAN, IPv6, passport IDs); configurable types
+- [ ] Optional dedicated /pii endpoint and UI examples
+- [ ] Compose with RAG policy citations (cross-intent) in future
 
 ### Phase 6 — Risk Scoring Agent
 * Lightweight classifier for feature descriptions (low/medium/high)
