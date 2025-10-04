@@ -95,8 +95,15 @@ python scripts/ingest_docs.py
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 # 4) Smoke test
-curl -X POST localhost:8000/query -H "Content-Type: application/json" \
+curl -X POST localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -H "X-User-Role: analyst" \
   -d '{"question":"What is GDPR?", "grounded": true}'
+
+# Guest (no role header) can use ungrounded query
+curl -X POST localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"question":"What is GDPR?", "grounded": false}'
 
 # 5) Metrics
 # Exposes Prometheus counters & histograms
@@ -405,13 +412,43 @@ uvicorn app.main:app --reload
 * [x] `ml/drift.py` (PSI) + “retrain recommended” flag
 * [x] CI runs tiny `train.py` and `drift.py` on PR
 
-### Phase 3 — Polish & Wow (Later)
+### Phase 3 — Polish & Wow
 
 * [x] Role-based access checks (admin/analyst/guest)
 * [x] Prompt registry (`prompts/*.yaml`) + loader
 * [x] Grafana dashboard (pre-provisioned via docker-compose)
 * [x] Dockerized one-click deploy (Render)
 * [x] Data Card & Model Card in `docs/`
+
+### Phase 4 — LangChain RAG + Router Agent
+* Introduce LangChain RetrievalQA for the QA path (feature-flagged)
+* Add Router Agent to route intents: QA (RAG), PII_DETECT, RISK_SCORE, OTHER
+* Preserve current endpoints and behavior with a toggle
+
+### Phase 5 — PII Detection Agent
+* Add PII detector (regex/heuristics; optional spaCy/NER backend)
+* Router path: detect → return entities + policy citations via RAG
+* Tests and scenario guide entries (payload paste, remediation hints)
+
+### Phase 6 — Risk Scoring Agent
+* Lightweight classifier for feature descriptions (low/medium/high)
+* Compose with RAG-based explanations and mitigations
+* Add metrics/audit fields for routed path and confidences
+
+### Phase 7 — Memory (short-term and long-term)
+* Short-term conversation memory (buffer/summary) per session_id
+* Long-term semantic memory (user/org facts) with RBAC and retention
+* Endpoints to list/clear memory; integrate read/write into chains
+
+### Phase 8 — Agentic workflows and polish
+* Policy Navigator Agent (decompose → retrieve → synthesize → recommend)
+* PII Remediation Agent (detect → retrieve policy → propose redactions + code snippets)
+* Retrieval improvements (multi-query/hyDE), optional summarizer agent
+* Expand docs/testing.md with sequential curl scenarios
+
+### Phase 9 — Ops and DX (optional)
+* Makefile targets, OpenAPI export in CI
+* Deployment recipes, Grafana dashboards packaging
 
 ---
 
