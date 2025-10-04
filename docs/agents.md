@@ -10,6 +10,8 @@ The Router Agent is a simple, feature-flagged component that selects an intent f
     - Patterns: email, phone, SSN, credit_card (+Luhn), ipv4, ipv6, iban, passport (heuristic)
     - Config: PII_TYPES (comma-separated) to enable/disable detectors
   - risk_score: assess risk-related questions
+    - Heuristics first (keywords): low/medium/high with a score in [0,1]
+    - Optional ML: RISK_ML_ENABLED (future) to use a small classifier
   - other: fallback
 
 Routing rules (rules_v1):

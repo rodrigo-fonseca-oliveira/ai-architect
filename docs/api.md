@@ -57,6 +57,10 @@ This service is a FastAPI application for AI risk, compliance, and observability
   - Request: { text: str, types?: [str], grounded?: bool }
   - Response: { summary, entities[], counts, types_present, audit }
   - Config: PII_TYPES (active detectors), PII_RAG_ENABLED to include policy citations when grounded=true
+- POST /risk — Risk scoring endpoint (analyst/admin)
+  - Request: { text: str }
+  - Response: { label, value, rationale, audit }
+
   - Feature flags:
     - LC_RAG_ENABLED: optional LangChain RetrievalQA backend for grounded QA
     - ROUTER_ENABLED: routes intents (qa, pii_detect, risk_score, other) using simple rules

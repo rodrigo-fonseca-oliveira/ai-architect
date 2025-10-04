@@ -15,6 +15,7 @@ Environment variables (selected):
 - ROUTER_ENABLED: enable simple Router Agent (rules-based) to select intent (default: false)
 - PII_TYPES: comma-separated list of detectors to enable (default: email,phone,ssn,credit_card,ipv4)
 - PII_RAG_ENABLED: when true, /pii may include policy citations when grounded=true (default: false)
+- RISK_ML_ENABLED: optional flag to use ML-based risk scorer instead of heuristics (future; default: false)
 - MLFLOW_TRACKING_URI, MLFLOW_EXPERIMENT_NAME: MLflow configuration
 - ML_BASELINE_DATA, ML_INPUT_DATA: paths for drift script defaults
 

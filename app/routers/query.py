@@ -141,8 +141,9 @@ def post_query(req: Request, payload: QueryRequest):
             except Exception:
                 citations = []
 
-    # Stub LLM answer (Phase 1 still stubbed; RAG affects citations only)
-    answer = "This is a stubbed answer. In Phase 1, RAG provides citations from local docs."
+    # Stub answer baseline; branches may override earlier (e.g., pii_detect)
+    if 'answer' not in locals():
+        answer = "This is a stubbed answer. In Phase 1, RAG provides citations from local docs."
 
     # Token & cost estimation
     model = os.getenv("LLM_MODEL", "gpt-4o-mini")
@@ -193,6 +194,16 @@ def post_query(req: Request, payload: QueryRequest):
                 audit_dict["pii_counts"] = pii_result.get("counts", {})
         except Exception:
             pass
+    # Attach Risk extras when present (non-breaking)
+    if intent == "risk_score":
+        try:
+            from app.services.risk_scorer import score
+            r = score(payload.question)
+            audit_dict["risk_score_label"] = r.get("label")
+            audit_dict["risk_score_value"] = r.get("value")
+            answer = f"Risk: {r.get('label')} ({float(r.get('value') or 0):.2f})."
+        except Exception:
+            pass
     audit = AuditMeta(**audit_dict)
 
     # Persist audit row, ensuring DB is initialized for current DB_URL
@@ -240,10 +251,9 @@ def post_query(req: Request, payload: QueryRequest):
             "rag_backend": rag_backend,
         }
         # attach router extras when present
-        if "router_backend" in audit_dict:
-            extra["router_backend"] = audit_dict.get("router_backend")
-        if "router_intent" in audit_dict:
-            extra["router_intent"] = audit_dict.get("router_intent")
+        for k in ("router_backend", "router_intent", "risk_score_label", "risk_score_value"):
+            if k in audit_dict:
+                extra[k] = audit_dict.get(k)
         logger.info(str({k: v for k, v in extra.items() if v is not None}))
     except Exception:
         pass

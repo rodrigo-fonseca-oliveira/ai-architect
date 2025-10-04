@@ -15,6 +15,7 @@ from .routers.query import router as query_router
 from .routers.research import router as research_router
 from .routers.predict import router as predict_router
 from .routers.pii import router as pii_router
+from .routers.risk import router as risk_router
 from .utils.logger import get_logger
 from .utils.metrics import request_count, request_latency
 
@@ -116,3 +117,4 @@ app.include_router(query_router)
 app.include_router(research_router)
 app.include_router(predict_router)
 app.include_router(pii_router)
+app.include_router(risk_router)
