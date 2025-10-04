@@ -40,12 +40,21 @@ Client → FastAPI Gateway
 # 0) Clone & env
 git clone https://github.com/<you>/ai-risk-monitor
 cd ai-risk-monitor
-cp .env.example .env  # fill in keys if using a hosted LLM (or start with stub)
+cp .env.example .env  # fill in keys if using a hosted LLM (or start with local/stub embeddings)
 
-# 1) Run locally
-docker compose up --build
+# 1) Setup venv and install
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -e .
 
-# 2) Smoke test
+# 2) Ingest docs for RAG (Phase 1)
+# Place a few .txt/.md files under DOCS_PATH (see .env), then:
+python scripts/ingest_docs.py
+
+# 3) Run locally
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# 4) Smoke test
 curl -X POST localhost:8000/query -H "Content-Type: application/json" \
   -d '{"question":"What is GDPR?", "grounded": true}'
 curl localhost:8000/metrics
@@ -216,19 +225,19 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
 ### Phase 0 — Bootstrap (Day 1)
 
-* [ ] FastAPI app skeleton + `/healthz`
-* [ ] JSON logger with `request_id`
-* [ ] SQLite DB + `audit` table
-* [ ] `/query` using a **stub LLM** (no external calls)
-* [ ] Token/cost estimator (mock) + `/metrics`
-* [ ] Basic tests (router + audit write)
-* [ ] CI: ruff + pytest
+* [x] FastAPI app skeleton + `/healthz`
+* [x] JSON logger with `request_id`
+* [x] SQLite DB + `audit` table (persist audit rows)
+* [x] `/query` using a **stub LLM** (no external calls)
+* [x] Token/cost estimator (mock) + `/metrics`
+* [x] Basic tests (routers + audit write)
+* [x] CI: ruff + pytest
 
 ### Phase 1 — Core Value (Day 2)
 
-* [ ] RAG: ingest 2–3 PDFs (GDPR summary, AWS docs), FAISS/Chroma
-* [ ] `/query` returns **citations** (page/snippet)
-* [ ] Denylist check + `compliance_flag`
+* [x] RAG: ingest local docs with Chroma (scripts/ingest_docs.py)
+* [x] `/query` returns **citations** (snippet + source) when `grounded=true`
+* [x] Denylist check + `compliance_flag` (env-based)
 * [ ] Retention sweeper (delete audit rows older than `LOG_RETENTION_DAYS`)
 * [ ] README architecture diagram + screenshots (CI, logs, MLflow UI)
 

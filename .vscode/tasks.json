@@ -23,6 +23,15 @@
       "options": {
         "cwd": "${workspaceFolder}"
       }
+    },
+    {
+      "label": "Ingest docs (RAG)",
+      "type": "shell",
+      "command": ". .venv/bin/activate && python scripts/ingest_docs.py",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
     }
   ]
 }
