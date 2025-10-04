@@ -6,10 +6,15 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from ..utils.audit import make_hash
+from ..utils.audit import make_hash, write_audit
 from ..utils.cost import estimate_tokens_and_cost
+from db.session import get_session
+from ..services.rag_retriever import RAGRetriever
 
 router = APIRouter()
+
+# Lazy init retriever
+_retriever: RAGRetriever | None = None
 
 
 # Schemas kept local for Phase 0 simplicity
@@ -49,23 +54,36 @@ class QueryResponse(BaseModel):
 def post_query(req: Request, payload: QueryRequest):
     start = time.perf_counter()
 
-    # Denylist (Phase 0: read from env, simple contains check)
+    # Denylist (Phase 1: env-based)
     denylist = [s.strip().lower() for s in os.getenv("DENYLIST", "").split(",") if s.strip()]
     lower_q = payload.question.lower()
     compliance_flag = any(term in lower_q for term in denylist)
 
-    # Stub LLM answer
+    # Validation
     if len(payload.question.strip()) < 3:
         raise HTTPException(status_code=400, detail="question too short")
 
-    answer = "This is a stubbed answer. In Phase 1, RAG will ground and add citations."
-
-    # Mock citations if grounded
+    # Initialize retriever if needed and get citations if grounded
     citations: List[Citation] = []
     if payload.grounded:
-        citations = [
-            Citation(source="docs/gdpr_summary.pdf", page=1, snippet="GDPR is a regulation...")
-        ]
+        # Always create retriever from current env to avoid stale path/provider
+        provider = os.getenv("EMBEDDINGS_PROVIDER", os.getenv("LLM_PROVIDER", "local"))
+        vector_path = os.getenv("VECTORSTORE_PATH", "./.local/vectorstore")
+        os.makedirs(vector_path, exist_ok=True)
+        retriever = __import__("app.services.rag_retriever", fromlist=["RAGRetriever"]).RAGRetriever(
+            persist_path=vector_path, provider=provider
+        )
+        try:
+            # Ensure collection has content for the given DOCS_PATH
+            docs_path = os.getenv("DOCS_PATH", "./examples")
+            retriever.ensure_loaded(docs_path)
+            found = retriever.retrieve(payload.question, k=3)
+            citations = [Citation(**c) for c in found]
+        except Exception:
+            citations = []
+
+    # Stub LLM answer (Phase 1 still stubbed; RAG affects citations only)
+    answer = "This is a stubbed answer. In Phase 1, RAG provides citations from local docs."
 
     # Token & cost estimation
     model = os.getenv("LLM_MODEL", "gpt-4o-mini")
@@ -86,5 +104,31 @@ def post_query(req: Request, payload: QueryRequest):
         prompt_hash=make_hash(payload.question),
         response_hash=make_hash(answer),
     )
+
+    # Persist audit row, ensuring DB is initialized for current DB_URL
+    try:
+        from db.session import init_db
+        init_db()
+    except Exception:
+        pass
+
+    from db.session import get_session
+    db = get_session()
+    try:
+        write_audit(
+            db,
+            request_id=audit.request_id,
+            endpoint=audit.endpoint,
+            user_id=audit.user_id,
+            tokens_prompt=audit.tokens_prompt,
+            tokens_completion=audit.tokens_completion,
+            cost_usd=audit.cost_usd,
+            latency_ms=audit.latency_ms,
+            compliance_flag=audit.compliance_flag,
+            prompt_hash=audit.prompt_hash,
+            response_hash=audit.response_hash,
+        )
+    finally:
+        db.close()
 
     return QueryResponse(answer=answer, citations=citations, audit=audit)

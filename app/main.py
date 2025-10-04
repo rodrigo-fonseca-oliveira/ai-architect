@@ -24,6 +24,12 @@ logger = get_logger(level=LOG_LEVEL)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info({"event": "startup", "env": APP_ENV})
+    # Initialize DB tables
+    try:
+        from db.session import init_db
+        init_db()
+    except Exception as e:
+        logger.error({"event": "db_init_error", "error": str(e)})
     yield
     logger.info({"event": "shutdown"})
 
@@ -47,9 +53,23 @@ async def add_request_id_and_log(request: Request, call_next: Callable):
     # Attach to request state for downstream
     request.state.request_id = req_id
 
-    response: Response
+    response: Response = Response(status_code=500)
     try:
         response = await call_next(request)
+    except Exception as e:
+        # Log and re-raise to preserve behavior
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        logger.error(
+            {
+                "event": "request_error",
+                "method": request.method,
+                "path": request.url.path,
+                "error": str(e),
+                "request_id": req_id,
+                "latency_ms": duration_ms,
+            }
+        )
+        raise
     finally:
         duration_ms = int((time.perf_counter() - start) * 1000)
         logger.info(
@@ -62,7 +82,7 @@ async def add_request_id_and_log(request: Request, call_next: Callable):
                 "latency_ms": duration_ms,
             }
         )
-    response.headers[REQUEST_ID_HEADER] = req_id
+        response.headers[REQUEST_ID_HEADER] = req_id
     return response
 
 
