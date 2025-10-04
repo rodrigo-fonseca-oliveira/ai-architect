@@ -275,6 +275,21 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
   * Optionally push “candidate model” tag if metrics ≥ baseline
 * (Optional) CD: deploy container to Render/Fly.io/Cloud Run (later)
 
+### Deploy on Render (Docker)
+1. Push this repo to GitHub.
+2. In Render, create a new Web Service and connect the repo.
+3. Choose “Deploy from Docker” and keep Dockerfile at repo root.
+4. Set environment variables (from `.env.example`), at minimum:
+   - APP_ENV=production
+   - LOG_LEVEL=INFO
+   - EMBEDDINGS_PROVIDER=stub (or local/openai)
+   - VECTORSTORE_PATH=/data/vectorstore (if you add a disk)
+   - DOCS_PATH=/app/examples
+   - DB_URL=sqlite:////data/audit.db (if you add a disk)
+5. Health check path: `/healthz` (port 8000).
+6. (Optional) Add a persistent disk and mount at `/data` for audit.db and vectorstore.
+7. Click Deploy. The app should be reachable at your Render URL.
+
 ---
 
 ## 12) Demo Script (90 seconds)

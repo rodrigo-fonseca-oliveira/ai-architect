@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: ai-risk-monitor
+    env: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /healthz
+    envVars:
+      - key: PORT
+        value: 8000
+      # Add other variables in Render dashboard for security:
+      # - key: APP_ENV
+      #   value: production
+      # - key: LOG_LEVEL
+      #   value: INFO
+      # - key: LLM_PROVIDER
+      # - key: LLM_API_KEY
+      # - key: EMBEDDINGS_PROVIDER
+      # - key: EMBEDDINGS_MODEL
+      # - key: VECTORSTORE_PATH
+      # - key: DOCS_PATH
+      # - key: DB_URL
+      # - key: MLFLOW_TRACKING_URI
+      # - key: MLFLOW_EXPERIMENT_NAME
+      # - key: PROMETHEUS_ENABLED
+      # - key: REQUEST_ID_HEADER
+      # - key: DENYLIST
+      # - key: ANONYMIZE_LOGS
+    # Optional persistent disk example:
+    # disks:
+    #   - name: data
+    #     mountPath: /data
+    #     sizeGB: 1
