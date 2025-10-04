@@ -5,6 +5,12 @@ python -m venv .venv
 . .venv/bin/activate
 pip install -e .
 
+### CPU-only local install tip
+If installing locally pulls a GPU-enabled PyTorch wheel via sentence-transformers, preinstall CPU PyTorch wheels first, then install the project:
+
+pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio
+pip install -e .
+
 ## Full test suite
 .venv/bin/python -m pytest -q
 

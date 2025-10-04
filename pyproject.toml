@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 # Use automatic package discovery and include only real Python packages
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["app*", "db*"]
+include = ["app*", "db*", "ml*", "scripts*"]
 
 [project]
 name = "ai-risk-monitor"

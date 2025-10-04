@@ -69,24 +69,37 @@ def post_query(req: Request, payload: QueryRequest):
 
     # Initialize retriever if needed and get citations if grounded
     citations: List[Citation] = []
+    rag_backend = "legacy"
     if payload.grounded:
         if not is_allowed_grounded_query(role):
             raise HTTPException(status_code=403, detail="grounded query not allowed for this role")
-        # Always create retriever from current env to avoid stale path/provider
-        provider = os.getenv("EMBEDDINGS_PROVIDER", os.getenv("LLM_PROVIDER", "local"))
-        vector_path = os.getenv("VECTORSTORE_PATH", "./.local/vectorstore")
-        os.makedirs(vector_path, exist_ok=True)
-        retriever = __import__("app.services.rag_retriever", fromlist=["RAGRetriever"]).RAGRetriever(
-            persist_path=vector_path, provider=provider
-        )
-        try:
-            # Ensure collection has content for the given DOCS_PATH
-            docs_path = os.getenv("DOCS_PATH", "./examples")
-            retriever.ensure_loaded(docs_path)
-            found = retriever.retrieve(payload.question, k=3)
-            citations = [Citation(**c) for c in found]
-        except Exception:
-            citations = []
+        # Feature flag for LangChain RetrievalQA path
+        lc_enabled = os.getenv("LC_RAG_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+        if lc_enabled:
+            rag_backend = "langchain"
+            try:
+                from app.services.langchain_rag import answer_with_citations
+
+                result = answer_with_citations(payload.question, k=3)
+                citations = [Citation(**c) for c in result.get("citations", [])]
+            except Exception:
+                citations = []
+        else:
+            # Always create retriever from current env to avoid stale path/provider
+            provider = os.getenv("EMBEDDINGS_PROVIDER", os.getenv("LLM_PROVIDER", "local"))
+            vector_path = os.getenv("VECTORSTORE_PATH", "./.local/vectorstore")
+            os.makedirs(vector_path, exist_ok=True)
+            retriever = __import__("app.services.rag_retriever", fromlist=["RAGRetriever"]).RAGRetriever(
+                persist_path=vector_path, provider=provider
+            )
+            try:
+                # Ensure collection has content for the given DOCS_PATH
+                docs_path = os.getenv("DOCS_PATH", "./examples")
+                retriever.ensure_loaded(docs_path)
+                found = retriever.retrieve(payload.question, k=3)
+                citations = [Citation(**c) for c in found]
+            except Exception:
+                citations = []
 
     # Stub LLM answer (Phase 1 still stubbed; RAG affects citations only)
     answer = "This is a stubbed answer. In Phase 1, RAG provides citations from local docs."
@@ -123,6 +136,7 @@ def post_query(req: Request, payload: QueryRequest):
     # attach as attribute for response consumers
     audit_dict = audit.model_dump()
     audit_dict["prompt_version"] = prompt_version
+    audit_dict["rag_backend"] = rag_backend
     audit = AuditMeta(**audit_dict)
 
     # Persist audit row, ensuring DB is initialized for current DB_URL

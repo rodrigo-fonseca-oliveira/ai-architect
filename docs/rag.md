@@ -28,3 +28,4 @@ retriever.ingest("./examples")
 - EMBEDDINGS_PROVIDER (local|openai|stub)
 - EMBEDDINGS_MODEL (e.g., sentence-transformers/all-MiniLM-L6-v2)
 - VECTORSTORE_PATH (storage path)
+- LC_RAG_ENABLED (default false): when true, grounded queries use the LangChain RetrievalQA path

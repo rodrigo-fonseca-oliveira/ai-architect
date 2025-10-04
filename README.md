@@ -92,6 +92,10 @@ pip install -e .
 python scripts/ingest_docs.py
 
 # 3) Run locally
+# Optional: enable LangChain RetrievalQA for grounded queries
+# export LC_RAG_ENABLED=true
+# Note: Docker builds are CPU-only by default. We install sentence-transformers using the PyTorch CPU index,
+# which forces CPU torch wheels. To switch to GPU later, modify the Dockerfile to use a CUDA-specific index URL.
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 # 4) Smoke test
@@ -290,6 +294,11 @@ python -m venv .venv
 pip install -e .
 
 # Run tests
+# CPU-only local install tip:
+# To avoid pulling GPU PyTorch wheels when installing locally, preinstall CPU wheels first:
+#   pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio
+# then install the project:
+#   pip install -e .
 .venv/bin/python -m pytest -q
 
 # Start API

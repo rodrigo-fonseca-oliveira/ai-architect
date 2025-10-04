@@ -36,3 +36,4 @@ ai_risk_monitor.egg-info/
 .local/vectorstore/
 audit.db
 .local/vectorstore/chroma.sqlite3
+data/vectorstore
