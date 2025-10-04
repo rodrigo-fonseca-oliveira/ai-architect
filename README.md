@@ -1,12 +1,12 @@
 
-# 🛡 AI Risk & Compliance Monitor (with RAG, Agent, and MLflow)
+# AI Risk & Compliance Monitor
 
 > A minimal reference platform for **safe, observable, and cost-aware** AI.
 > FastAPI gateway with audit logs, token/cost tracking, drift checks, and modular endpoints for **LLM (RAG)**, **Agent pipeline**, and **ML model serving** (MLflow).
 
 ---
 
-## 1) Problem Statement
+## Overview
 
 Enterprises adopting GenAI need **traceability, governance, and cost visibility** before they scale. This project wraps AI calls with a lightweight **monitoring & compliance layer** and exposes production-ready patterns:
 
@@ -18,7 +18,7 @@ Enterprises adopting GenAI need **traceability, governance, and cost visibility*
 
 ---
 
-## 2) High-Level Architecture
+## Architecture (high level)
 
 ```
 Client → FastAPI Gateway
@@ -73,7 +73,7 @@ flowchart TD
 
 ---
 
-## 3) Quickstart
+## Quick start
 
 ```bash
 # 0) Clone & env
@@ -109,7 +109,7 @@ curl localhost:8000/metrics | sed -n '1,80p'
 
 ---
 
-## 4) Repo Layout
+## Repository layout
 
 ```
 ai-risk-monitor/
@@ -155,9 +155,6 @@ ai-risk-monitor/
     test_query.py
     test_audit.py
     test_predict.py
-  infra/
-    Dockerfile
-    docker-compose.yml
   .github/workflows/
     ci.yml            # lint + tests + (optional) fast train
   .env.example
@@ -165,7 +162,7 @@ ai-risk-monitor/
 
 ---
 
-## 5) Endpoints
+## Endpoints (summary)
 
 * `POST /query`
   Input: `{ question: str, grounded?: bool }`
@@ -210,7 +207,7 @@ ai-risk-monitor/
 
 ---
 
-## 6) Observability, Audit, & Cost
+## Observability, audit, and cost
 
 * **Structured JSON logs** with `request_id` (propagated)
 * **Audit DB row** per request: timestamps, role, prompt/resp hashes, flags
@@ -225,7 +222,7 @@ ai-risk-monitor/
 
 ---
 
-## 7) ML Lifecycle (MLflow)
+## ML lifecycle (MLflow)
 
 * `ml/train.py` trains a tiny model (e.g., churn) → logs params/metrics/artifacts
 * Register best model → served by `/predict` via `mlflow_client.py`
@@ -233,7 +230,7 @@ ai-risk-monitor/
 
 ---
 
-## 8) Agentic Pipeline
+## Agentic pipeline
 
 * Deterministic steps: `search → fetch → summarize → risk_check`
 * **Tool calls audited** (name, args, latency, result hash)
@@ -262,7 +259,7 @@ flowchart LR
 
 ---
 
-## 9) Security & Governance
+## Security and governance
 
 * **No secrets** in code; use `.env.example`
 * **RBAC**: roles (`admin`, `analyst`, `guest`) enforced via `X-User-Role` header
@@ -275,24 +272,26 @@ flowchart LR
 
 ---
 
-## 10) Local Dev Commands
+## Local development and testing
+
+See docs/testing.md for a full cheat sheet. Quick commands:
 
 ```bash
-# Format & lint
-ruff check . && ruff format .
-mypy app || true
+# Create venv and install
+python -m venv .venv
+. .venv/bin/activate
+pip install -e .
 
-# Tests
-pytest -q
+# Run tests
+.venv/bin/python -m pytest -q
 
-# ML quick run
-python ml/train.py
-python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
+# Start API
+uvicorn app.main:app --reload
 ```
 
 ---
 
-## 11) CI/CD (GitHub Actions)
+## CI/CD (GitHub Actions)
 
 * **ci.yml** runs on PR & main:
 
@@ -350,7 +349,7 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
 ---
 
-## 12) Demo Script (90 seconds)
+## Demo script (90 seconds)
 
 1. `uvicorn app.main:app` → hit `/healthz`
 2. `POST /query` with grounded=true → show citations + cost
@@ -368,7 +367,7 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
 ---
 
-## 13) Known Limitations
+## Known limitations
 
 * Local vector store (Chroma/FAISS); swap for managed in prod
 * Cost estimator approximates vendor pricing; not real billing
@@ -377,7 +376,7 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
 ---
 
-## 14) Roadmap (Weekend Plan ✅ / Later ⭐)
+## Roadmap
 
 ### Phase 0 — Bootstrap (Day 1)
 
@@ -404,7 +403,7 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 * [x] ML: `ml/train.py` → MLflow (local) logs params/metrics/artifacts
 * [x] `/predict` loads latest model from MLflow local store
 * [x] `ml/drift.py` (PSI) + “retrain recommended” flag
-* [ ] CI runs tiny `train.py` and `drift.py` on PR
+* [x] CI runs tiny `train.py` and `drift.py` on PR
 
 ### Phase 3 — Polish & Wow (Later)
 
@@ -412,11 +411,11 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 * [x] Prompt registry (`prompts/*.yaml`) + loader
 * [x] Grafana dashboard (pre-provisioned via docker-compose)
 * [x] Dockerized one-click deploy (Render)
-* [ ] Data Card & Model Card in `docs/`
+* [x] Data Card & Model Card in `docs/`
 
 ---
 
-## 15) Tech Stack
+## Tech stack
 
 * **API**: FastAPI, Pydantic, Uvicorn
 * **LLM/RAG**: Local stub → (optionally) OpenAI/Azure/OpenRouter + FAISS/Chroma
@@ -428,7 +427,7 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 
 ---
 
-## 16) License
+## License
 
 Apache-2.0 (or MIT). Add `LICENSE` file.
 
