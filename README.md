@@ -48,7 +48,9 @@ python3 -m venv .venv
 pip install -e .
 
 # 2) Ingest docs for RAG (Phase 1)
-# Place a few .txt/.md files under DOCS_PATH (see .env), then:
+# Place a few .txt/.md files under DOCS_PATH (see .env). Example:
+mkdir -p examples
+printf "GDPR is a regulation in EU about data protection.\n" > examples/gdpr.txt
 python scripts/ingest_docs.py
 
 # 3) Run locally
@@ -144,7 +146,12 @@ ai-risk-monitor/
 * **Audit DB row** per request: timestamps, role, prompt/resp hashes, flags
 * **Token & cost** estimator (per model) aggregated by user/day
 * **Denylist** (e.g., “SSN”, “PHI”) → `compliance_flag=true` in audit row
-* **Retention** via `LOG_RETENTION_DAYS` (cron or startup sweep)
+* **Retention** via `LOG_RETENTION_DAYS` (cron or on-demand sweep)
+
+### Retention Sweeper
+- Deletes audit rows older than `LOG_RETENTION_DAYS` (default: 30).
+- Run it via VS Code task: “Sweep retention (audit)”, or CLI:
+  - `. .venv/bin/activate && python scripts/sweep_retention.py`
 
 ---
 
@@ -238,7 +245,7 @@ python ml/drift.py --input ml/data/new_batch.csv --baseline ml/data/baseline.csv
 * [x] RAG: ingest local docs with Chroma (scripts/ingest_docs.py)
 * [x] `/query` returns **citations** (snippet + source) when `grounded=true`
 * [x] Denylist check + `compliance_flag` (env-based)
-* [ ] Retention sweeper (delete audit rows older than `LOG_RETENTION_DAYS`)
+* [x] Retention sweeper (delete audit rows older than `LOG_RETENTION_DAYS`)
 * [ ] README architecture diagram + screenshots (CI, logs, MLflow UI)
 
 ### Phase 2 — Agent & MLflow (Stretch)

@@ -32,6 +32,15 @@
       "options": {
         "cwd": "${workspaceFolder}"
       }
+    },
+    {
+      "label": "Sweep retention (audit)",
+      "type": "shell",
+      "command": ". .venv/bin/activate && python scripts/sweep_retention.py",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
     }
   ]
 }
