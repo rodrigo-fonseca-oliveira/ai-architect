@@ -477,10 +477,10 @@ uvicorn app.main:app --reload
 - [x] Docs and tests for memory and retention
 
 ### Phase 8 — Agentic workflows and polish
-* Policy Navigator Agent (decompose → retrieve → synthesize → recommend)
-* PII Remediation Agent (detect → retrieve policy → propose redactions + code snippets)
-* Retrieval improvements (multi-query/hyDE), optional summarizer agent
-* Expand docs/testing.md with sequential curl scenarios
+- [x] Policy Navigator Agent (decompose → retrieve → synthesize → recommend)
+- [x] PII Remediation Agent (detect → retrieve policy → propose redactions + code snippets)
+- [x] Retrieval improvements (multi-query/hyDE), optional summarizer agent
+- [x] Expand docs/testing.md with sequential curl scenarios
 
 ### Phase 9 — Ops and DX (optional)
 * Makefile targets, OpenAPI export in CI
