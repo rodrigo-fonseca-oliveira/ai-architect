@@ -60,16 +60,19 @@ def reformulate_queries(question: str, n: int) -> List[str]:
     base = question.strip()
     terms = _normalize_terms(question)
     key_terms = " ".join(terms[:8])
-    variants = [
+    # Deterministic but richer set when multi-query is enabled (n>2)
+    base_variants = [
         base,
         f"Key terms: {key_terms}",
         f"Explain: {base}",
         f"Describe policy: {base}",
         f"Summarize: {base}",
+        f"Definition and scope: {base}",
+        f"Compliance guidance: {base}",
     ]
     # ensure determinism and cap to n
     out: List[str] = []
-    for v in variants:
+    for v in base_variants:
         if v not in out:
             out.append(v)
         if len(out) >= n:
