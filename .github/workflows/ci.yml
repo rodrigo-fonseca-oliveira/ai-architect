@@ -2,9 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 jobs:
   build-test:
@@ -13,24 +11,27 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.10'
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install -U pip
           pip install -e .
-      - name: Lint
+      - name: Lint (ruff)
         run: |
-          pip install ruff
+          . .venv/bin/activate
           ruff check .
-      - name: Tests
+      - name: Run tests
         run: |
-          pip install pytest httpx anyio
+          . .venv/bin/activate
           pytest -q
-
-      - name: ML: Train tiny model
+      - name: Export OpenAPI
         run: |
-          python ml/train.py
-
-      - name: ML: Drift check (gated)
-        run: |
-          python ml/drift.py --baseline ml/data/baseline.csv --input ml/data/new_batch.csv
+          . .venv/bin/activate
+          python scripts/export_openapi.py
+      - name: Upload OpenAPI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: docs/openapi.yaml

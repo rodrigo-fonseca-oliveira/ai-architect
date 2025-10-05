@@ -1,7 +1,7 @@
 import os
 from typing import Literal
 
-Intent = Literal["qa", "pii_detect", "risk_score", "other"]
+Intent = Literal["qa", "pii_detect", "risk_score", "policy_navigator", "pii_remediation", "other"]
 
 
 def is_enabled() -> bool:
@@ -9,16 +9,23 @@ def is_enabled() -> bool:
 
 
 def route_intent(question: str, grounded: bool) -> Intent:
-    # Simple rules v1
-    lower = (question or "").lower()
+    # Simple rules v2
+    q = (question or "").lower()
+    # Grounded queries are always QA
     if grounded:
         return "qa"
-    pii_terms = ["ssn", "social security", "credit card", "cc number", "email", "pii", "phone number"]
-    risk_terms = ["risk", "severity", "score", "risk score", "impact"]
-    if any(t in lower for t in pii_terms):
+    # PII flows: remediation hints
+    if any(t in q for t in ("pii", "email", "ssn", "social security", "credit card", "iban", "ipv4", "ipv6", "passport", "phone number")):
+        if any(w in q for w in ("redact", "mask", "anonymiz", "remediat")):
+            return "pii_remediation"
         return "pii_detect"
-    if any(t in lower for t in risk_terms):
+    # Risk
+    if any(t in q for t in ("risk", "severity", "score", "risk score", "impact", "hazard", "danger")):
         return "risk_score"
+    # Policy Navigator
+    if any(t in q for t in ("policy", "regulation", "regulatory", "compliance", "gdpr", "hipaa")):
+        return "policy_navigator"
+    # Default
     return "qa"
 
 

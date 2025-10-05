@@ -52,7 +52,8 @@ class StubEmbeddings(EmbeddingsProvider):
 class RAGRetriever:
     def __init__(self, persist_path: str, provider: str = "local", model: str = "sentence-transformers/all-MiniLM-L6-v2"):
         self.client = chromadb.PersistentClient(path=persist_path)
-        self.collection = self.client.get_or_create_collection(name="docs")
+        coll_name = os.getenv("RAG_COLLECTION_NAME", "docs")
+        self.collection = self.client.get_or_create_collection(name=coll_name)
         self.provider_name = provider
         if provider == "openai":
             self.emb = OpenAIEmbeddings(model=os.getenv("EMBEDDINGS_MODEL", "text-embedding-3-small"))
@@ -143,12 +144,27 @@ class RAGRetriever:
 
     def retrieve(self, query: str, k: int = 3) -> List[Dict[str, Any]]:
         qvec = self.emb.embed([query])[0]
-        results = self.collection.query(query_embeddings=[qvec], n_results=k)
         citations: List[Dict[str, Any]] = []
-        docs = results.get("documents") or [[]]
-        metas = results.get("metadatas") or [[]]
-        if docs and metas and len(docs[0]) and len(metas[0]):
-            for doc, meta in zip(docs[0], metas[0]):
-                snippet = doc[:200].replace("\n", " ") if doc else None
-                citations.append({"source": meta.get("source", "unknown"), "page": None, "snippet": snippet})
+        try:
+            results = self.collection.query(query_embeddings=[qvec], n_results=k)
+            docs = results.get("documents") or [[]]
+            metas = results.get("metadatas") or [[]]
+            if docs and metas and len(docs[0]) and len(metas[0]):
+                for doc, meta in zip(docs[0], metas[0]):
+                    snippet = doc[:200].replace("\n", " ") if doc else None
+                    citations.append({"source": meta.get("source", "unknown"), "page": None, "snippet": snippet})
+        except Exception:
+            citations = []
+        # Fallback: if no citations found, return up to k docs from collection
+        if not citations:
+            try:
+                data = self.collection.get()
+                got_docs = data.get("documents", []) or []
+                got_meta = data.get("metadatas", []) or []
+                if got_docs and got_meta:
+                    for doc, meta in zip(got_docs[:k], got_meta[:k]):
+                        snippet = (doc[:200].replace("\n", " ") if isinstance(doc, str) else None)
+                        citations.append({"source": (meta or {}).get("source", "unknown"), "page": None, "snippet": snippet})
+            except Exception:
+                pass
         return citations

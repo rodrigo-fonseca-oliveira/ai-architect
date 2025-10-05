@@ -148,6 +148,8 @@ def post_query(req: Request, payload: QueryRequest):
                 # Ensure collection has content for the given DOCS_PATH
                 docs_path = os.getenv("DOCS_PATH", "./examples")
                 retriever.ensure_loaded(docs_path)
+                # Set rag backend explicitly for legacy path in response audit
+                audit_dict["rag_backend"] = "legacy"
                 # Multi-query retrieval when enabled
                 if os.getenv("RAG_MULTI_QUERY_ENABLED", "false").lower() in ("1", "true", "yes", "on"):
                     n = int(os.getenv("RAG_MULTI_QUERY_COUNT", "3"))
@@ -342,8 +344,11 @@ def post_query(req: Request, payload: QueryRequest):
     except Exception:
         pass
     # ensure rag_backend present when using legacy path
-    if 'rag_backend' not in response_audit:
-        response_audit['rag_backend'] = rag_backend
+    try:
+        if isinstance(rag_backend, str):
+            response_audit['rag_backend'] = rag_backend
+    except Exception:
+        pass
     if not short_enabled:
         for k in ("memory_short_reads", "memory_short_writes", "summary_updated", "memory_short_pruned"):
             response_audit.pop(k, None)
