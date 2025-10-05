@@ -64,6 +64,9 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
 - POST /policy_navigator — Policy Navigator Agent (analyst/admin)
   - Request: { question: string, max_subqs?: number }
   - Response: { recommendation: string, citations: [{source, snippet, page?}], audit: { steps[] } }
+- POST /pii_remediation — PII Remediation Agent (analyst/admin)
+  - Request: { text: string, return_snippets?: boolean, grounded?: boolean }
+  - Response: { remediation: [...], citations?: [...], audit: { pii_entities_count, pii_types } }
 
 - GET /memory/short — list short-term memory for a session (analyst/admin)
   - Params: user_id (required), session_id (required)
