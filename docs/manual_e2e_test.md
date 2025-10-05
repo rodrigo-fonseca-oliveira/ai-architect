@@ -46,7 +46,7 @@ Test flow overview (ordered)
 
 Validation methodology
 - Each step includes: commands to run, what to expect, what to check in outputs.
-- Save outputs in ./e2e_logs (the script does this automatically).
+- Save outputs in ./e2e_logs/<timestamp> (the script does this automatically).
 
 ---
 
