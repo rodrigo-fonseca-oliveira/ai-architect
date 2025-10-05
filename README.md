@@ -92,10 +92,6 @@ pip install -e .
 python scripts/ingest_docs.py
 
 # 3) Run locally
-# Optional: enable LangChain RetrievalQA for grounded queries
-# export LC_RAG_ENABLED=true
-# Note: Docker builds are CPU-only by default. We install sentence-transformers using the PyTorch CPU index,
-# which forces CPU torch wheels. To switch to GPU later, modify the Dockerfile to use a CUDA-specific index URL.
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 # 4) Smoke test
@@ -110,15 +106,20 @@ curl -X POST localhost:8000/query \
   -d '{"question":"What is GDPR?", "grounded": false}'
 
 # 5) Metrics
-# Exposes Prometheus counters & histograms
 curl localhost:8000/metrics | sed -n '1,80p'
-
-# If protected with a token:
-# export METRICS_TOKEN=changeme
-# curl -H "X-Metrics-Token: $METRICS_TOKEN" localhost:8000/metrics | sed -n '1,80p'
 ```
 
----
+### Architect mode (Guide + Brainstorm)
+
+- Enable feature: export PROJECT_GUIDE_ENABLED=true
+- Ensure corpus: export DOCS_PATH=/docs (docs/ and docs/README.md included)
+- API usage:
+  - Guide (grounded with citations):
+    curl -sS -X POST localhost:8000/architect -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{"question":"How does the router work?","mode":"guide"}' | jq .
+  - Brainstorm (citations optional):
+    curl -sS -X POST localhost:8000/architect -H 'Content-Type: application/json' -d '{"question":"Adapt for internal policy review","mode":"brainstorm"}' | jq .
+- UI:
+  - Open http://localhost:8000/architect/ui
 
 ## Repository layout
 

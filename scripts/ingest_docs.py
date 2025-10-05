@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DOCS_PATH = os.getenv("DOCS_PATH", "./examples")
+# Prefer ./docs as the corpus root by default
+DOCS_PATH = os.getenv("DOCS_PATH", "./docs")
 
 
 def extract_pdf_text(path: str) -> str:

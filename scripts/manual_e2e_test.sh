@@ -188,19 +188,24 @@ req research "curl -sS -X POST $API_URL/research -H 'Content-Type: application/j
 export RAG_MULTI_QUERY_ENABLED=true; export RAG_MULTI_QUERY_COUNT=4; export RAG_HYDE_ENABLED=true
 # Top-k = 1
 export RAG_TOP_K=1
-req rag_flags "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"question\":\"What is data retention?\",\"grounded\": true}' | jq ."
-CIT_COUNT_K1=$(jq '.citations | length' "$RUN_DIR/rag_flags.out" 2>/dev/null || echo 0)
-if [[ ${CIT_COUNT_K1:-0} -lt 1 || ${CIT_COUNT_K1:-0} -gt 1 ]]; then echo "WARN: citations count $CIT_COUNT_K1 not within expected bounds for top_k=1" | tee -a "$RUN_DIR/trace.log"; else echo "PASS: citations count within bounds for top_k=1 ($CIT_COUNT_K1)" | tee -a "$RUN_DIR/trace.log"; fi
+req rag_flags "curl -sS -X POST /query -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"question\":\"What is data retention?\",\"grounded\": true}' | jq ."
+CIT_COUNT_K1=$(jq '.citations | length' "/rag_flags.out" 2>/dev/null || echo 0)
+if [[  -lt 1 ||  -gt 1 ]]; then echo "WARN: citations count  not within expected bounds for top_k=1" | tee -a "/trace.log"; else echo "PASS: citations count within bounds for top_k=1 ()" | tee -a "/trace.log"; fi
 # Variant: disable hyDE, top-k = 3
 export RAG_HYDE_ENABLED=false; export RAG_TOP_K=3
-req rag_flags_no_hyde "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"question\":\"What is data retention?\",\"grounded\": true}' | jq ."
-CIT_COUNT_K3=$(jq '.citations | length' "$RUN_DIR/rag_flags_no_hyde.out" 2>/dev/null || echo 0)
-if [[ ${CIT_COUNT_K3:-0} -lt 1 || ${CIT_COUNT_K3:-0} -gt 3 ]]; then echo "WARN: citations count $CIT_COUNT_K3 not within expected bounds for top_k=3" | tee -a "$RUN_DIR/trace.log"; else echo "PASS: citations count within bounds for top_k=3 ($CIT_COUNT_K3)" | tee -a "$RUN_DIR/trace.log"; fi
+req rag_flags_no_hyde "curl -sS -X POST /query -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"question\":\"What is data retention?\",\"grounded\": true}' | jq ."
+CIT_COUNT_K3=$(jq '.citations | length' "/rag_flags_no_hyde.out" 2>/dev/null || echo 0)
+if [[  -lt 1 ||  -gt 3 ]]; then echo "WARN: citations count  not within expected bounds for top_k=3" | tee -a "/trace.log"; else echo "PASS: citations count within bounds for top_k=3 ()" | tee -a "/trace.log"; fi
 # Variant: single-query
 export RAG_MULTI_QUERY_ENABLED=false
-req rag_flags_single "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"question\":\"What is data protection?\",\"grounded\": true}' | jq ."
+req rag_flags_single "curl -sS -X POST /query -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"question\":\"What is data protection?\",\"grounded\": true}' | jq ."
 
-# 11) Observability
+# 11) Architect mode
+export PROJECT_GUIDE_ENABLED=true
+req architect_guide "curl -sS -X POST /architect -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"question\":\"How does the router work?\",\"mode\":\"guide\"}' | jq ."
+req architect_brainstorm "curl -sS -X POST /architect -H 'Content-Type: application/json' -d '{\"question\":\"Adapt for internal policy review\",\"mode\":\"brainstorm\"}' | jq ."
+
+# 12) Observability
 req openapi "python scripts/export_openapi.py && ls -l docs/openapi.yaml"
 # Metrics delta checks
 RISK_COUNT_BEFORE=$(curl -sS $API_URL/metrics | awk -F' ' '/^app_requests_total\{endpoint="\/risk",status="200"\}/ {print $2; exit}')

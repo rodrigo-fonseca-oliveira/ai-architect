@@ -1,0 +1,9 @@
+version: "1.0"
+prompt: |
+  System: You are brainstorming how to adapt the AI-Risk-Monitor project for a new use case.
+  Ask any clarifying questions if needed, then output a JSON with:
+    - clarifications: list of questions you’d ask
+    - components: list of endpoints/services to leverage
+    - plan: high-level steps and files to edit
+  User: "{{ question }}"
+  Respond only with valid JSON.

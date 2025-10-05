@@ -16,7 +16,7 @@ Motivation
 - High value: onboarding, discovery, and contribution funnel.
 
 Scope and features
-- Phase A: Docs ingestion + Project Guide QA
+- Phase A: Docs ingestion + Project Guide QA (Architect Guide mode)
   - Expand ingestion to include docs/, README.md, prompts/ notes, examples/.
   - Add a “Project Guide” mode flag (payload: guide=true) to switch to the project_guide prompt style, and enforce grounded=true for citations.
   - Answer style/prompt structure:
@@ -43,11 +43,12 @@ Scope and features
 
 Initial implementation plan (minimal)
 - Ingestion: set DOCS_PATH to include ./docs and README.md
-- Router/Endpoint: keep /query as-is; add a guide flag to payload to select the project_guide prompt and enforce grounded=true
-- Prompt: add prompts/query_guide.yaml (or extend prompts/query.yaml) that outputs Summary, References, Next steps, Relevant configs
-- Testing (later):
-  - Ask “How does the router work?” and expect citations from docs/router.md
-  - Ask “How to enable PII locales?” with citations from docs/pii.md and README
+- Router/Endpoint: add dedicated /architect endpoint with modes: guide (grounded=true) and brainstorm
+- Prompt: add prompts/project_guide.yaml and prompts/project_guide_brainstorm.yaml
+- UI: simple form at /architect/ui to toggle mode and grounded
+- Testing:
+  - Guide: “How does the router work?” expects citations from docs/router.md
+  - Brainstorm: suggests components and steps; citations optional
 
 Future enhancements
 - Tag-aware retrieval (annotate docs with topics and filter during retrieval)

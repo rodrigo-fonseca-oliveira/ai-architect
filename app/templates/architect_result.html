@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Architect Result</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 2rem; }
+      .card { max-width: 900px; padding: 1.5rem; border: 1px solid #ddd; border-radius: 8px; }
+      pre { white-space: pre-wrap; word-wrap: break-word; }
+      .meta { color: #666; font-size: .9rem; }
+      ul { margin-top: .25rem; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Architect Result</h1>
+      {% if status != 200 %}
+        <p class="meta">Status: {{ status }}</p>
+      {% endif %}
+      {% if data.error %}
+        <pre>{{ data.error }}</pre>
+      {% else %}
+        <h2>Answer</h2>
+        <pre>{{ data.answer }}</pre>
+        <h3>Citations</h3>
+        {% if data.citations and data.citations|length > 0 %}
+          <ul>
+            {% for c in data.citations %}
+              <li><strong>{{ c.source }}</strong>: {{ c.snippet }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="meta">No citations.</div>
+        {% endif %}
+        <h3>Suggested steps</h3>
+        <ul>
+          {% for s in data.suggested_steps %}
+            <li>{{ s }}</li>
+          {% endfor %}
+        </ul>
+        <h3>Relevant env flags</h3>
+        <ul>
+          {% for f in data.suggested_env_flags %}
+            <li><code>{{ f }}</code></li>
+          {% endfor %}
+        </ul>
+        <h3>Audit</h3>
+        <pre class="meta">{{ data.audit | tojson(indent=2) }}</pre>
+      {% endif %}
+      <p><a href="/architect/ui">Back</a></p>
+    </div>
+  </body>
+</html>
