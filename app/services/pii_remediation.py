@@ -1,6 +1,5 @@
 import os
-import time
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from app.utils.logger import get_logger
 
@@ -9,12 +8,20 @@ logger = get_logger(__name__)
 
 def _default_remediations() -> Dict[str, Dict[str, Any]]:
     return {
-        "email": {"action": "mask", "pattern": "(?<=.).(?=[^@]*?@)", "replacement": "*"},
+        "email": {
+            "action": "mask",
+            "pattern": "(?<=.).(?=[^@]*?@)",
+            "replacement": "*",
+        },
         "phone": {"action": "mask", "pattern": "\d", "replacement": "X"},
         "ssn": {"action": "mask", "pattern": "\d(?!\d{0,3}$)", "replacement": "*"},
         "ipv4": {"action": "mask", "pattern": "\d+", "replacement": "X"},
         "ipv6": {"action": "mask", "pattern": "[0-9a-fA-F]", "replacement": "X"},
-        "credit_card": {"action": "mask", "pattern": "\d(?!\d{0,3}$)", "replacement": "*"},
+        "credit_card": {
+            "action": "mask",
+            "pattern": "\d(?!\d{0,3}$)",
+            "replacement": "*",
+        },
         "iban": {"action": "mask", "pattern": "\w(?!\w{0,4}$)", "replacement": "*"},
         "passport": {"action": "mask", "pattern": "\w(?!\w{0,3}$)", "replacement": "*"},
     }
@@ -31,16 +38,20 @@ def _snippet_for_type(t: str) -> str:
 
 
 def _retrieve_guidance(query: str, k: int = 2) -> List[Dict[str, Any]]:
-    provider = os.getenv("EMBEDDINGS_PROVIDER", os.getenv("LLM_PROVIDER", "local"))
+    # provider preserved for future selection; no-op for now to avoid unused warning
+    os.getenv("EMBEDDINGS_PROVIDER", os.getenv("LLM_PROVIDER", "local"))
     try:
         from app.services.langchain_rag import answer_with_citations
+
         resp = answer_with_citations(query, k=k)
         return resp.get("citations", [])
     except Exception:
         return []
 
 
-def synthesize_remediation(entities: List[Dict[str, Any]], include_snippets: bool, grounded: bool) -> Dict[str, Any]:
+def synthesize_remediation(
+    entities: List[Dict[str, Any]], include_snippets: bool, grounded: bool
+) -> Dict[str, Any]:
     remediations = _default_remediations()
     per_type: Dict[str, Dict[str, Any]] = {}
     citations: List[Dict[str, Any]] = []
@@ -53,7 +64,9 @@ def synthesize_remediation(entities: List[Dict[str, Any]], include_snippets: boo
             rule = remediations.get(t, {"action": "mask"})
             entry: Dict[str, Any] = {"type": t, "action": rule.get("action", "mask")}
             # add a simple description
-            entry["description"] = f"Apply {entry['action']} to {t} using policy-compliant patterns."
+            entry["description"] = (
+                f"Apply {entry['action']} to {t} using policy-compliant patterns."
+            )
             if include_snippets:
                 entry["snippet"] = _snippet_for_type(t)
             per_type[t] = entry

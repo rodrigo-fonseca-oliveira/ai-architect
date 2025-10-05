@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+
 import numpy as np
 import pandas as pd
 
@@ -12,14 +13,20 @@ def psi(expected: np.ndarray, actual: np.ndarray, bins: int = 10) -> float:
     actual_perc, _ = np.histogram(actual, bins=edges)
     expected_perc = expected_perc / (expected_perc.sum() + eps)
     actual_perc = actual_perc / (actual_perc.sum() + eps)
-    psi_vals = (actual_perc - expected_perc) * np.log((actual_perc + eps) / (expected_perc + eps))
+    psi_vals = (actual_perc - expected_perc) * np.log(
+        (actual_perc + eps) / (expected_perc + eps)
+    )
     return float(np.sum(psi_vals))
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--baseline", default=os.getenv("ML_BASELINE_DATA", "./ml/data/baseline.csv"))
-    parser.add_argument("--input", default=os.getenv("ML_INPUT_DATA", "./ml/data/new_batch.csv"))
+    parser.add_argument(
+        "--baseline", default=os.getenv("ML_BASELINE_DATA", "./ml/data/baseline.csv")
+    )
+    parser.add_argument(
+        "--input", default=os.getenv("ML_INPUT_DATA", "./ml/data/new_batch.csv")
+    )
     parser.add_argument("--threshold", type=float, default=0.2)
     args = parser.parse_args()
 
@@ -30,7 +37,9 @@ def main():
     base = pd.read_csv(args.baseline)
     new = pd.read_csv(args.input)
 
-    common_cols = [c for c in base.columns if c in new.columns and base[c].dtype != "object"]
+    common_cols = [
+        c for c in base.columns if c in new.columns and base[c].dtype != "object"
+    ]
     if not common_cols:
         print("No common numeric columns; skipping drift check.")
         sys.exit(0)

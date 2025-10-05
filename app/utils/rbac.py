@@ -1,4 +1,4 @@
-from fastapi import Request, HTTPException, status, Depends
+from fastapi import Depends, HTTPException, Request, status
 
 ROLE_ORDER = {"guest": 0, "analyst": 1, "admin": 2}
 
@@ -13,7 +13,9 @@ def require_role(min_role: str):
 
     async def dependency(role: str = Depends(parse_role)):
         if ROLE_ORDER.get(role, 0) < min_val:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="forbidden"
+            )
         return role
 
     return dependency

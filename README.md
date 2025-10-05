@@ -315,6 +315,13 @@ flowchart LR
 
 ## Local development and testing
 
+### Pre-commit hooks
+- Install and enable:
+  - pip install pre-commit
+  - pre-commit install
+- Run manually:
+  - pre-commit run --all-files
+
 See docs/testing.md for a full cheat sheet. You can also use the Makefile for convenience.
 
 ```bash

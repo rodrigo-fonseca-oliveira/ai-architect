@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 # Simple, deterministic PII detector using regex/heuristics.
 # Returns masked previews and basic counts, no external calls.
@@ -32,7 +32,9 @@ def _luhn_check(num: str) -> bool:
 BASE_PATTERNS = {
     "email": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
     # US-style phone plus E.164-like international (+CC and 7-14 digits with optional separators)
-    "phone": re.compile(r"\b(?:\+\d{1,3}[ -]?)?(?:\(?\d{2,4}\)?[ -]?\d{3,4}[ -]?\d{3,4})\b"),
+    "phone": re.compile(
+        r"\b(?:\+\d{1,3}[ -]?)?(?:\(?\d{2,4}\)?[ -]?\d{3,4}[ -]?\d{3,4})\b"
+    ),
     "ssn": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
     "ipv4": re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b"),
     "ipv6": re.compile(r"\b(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}\b"),  # simplified
@@ -51,15 +53,22 @@ LOCALE_PATTERNS = {
     },
     "UK": {
         # UK postcode (simplified, broad)
-        "postal_uk": re.compile(r"\b[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}\b", re.IGNORECASE),
+        "postal_uk": re.compile(
+            r"\b[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}\b", re.IGNORECASE
+        ),
         # NI number: two letters, six digits, optional letter A-D
         "ni_uk": re.compile(r"\b[A-CEGHJ-PR-TW-Z]{2}\d{6}[A-D]?\b", re.IGNORECASE),
     },
     "CA": {
         # Canadian SIN (very simplified): 9 digits, allow spaces
-        "sin_ca": re.compile(r"\b\d[ -]?\d[ -]?\d[ -]?\d[ -]?\d[ -]?\d[ -]?\d[ -]?\d[ -]?\d\b"),
+        "sin_ca": re.compile(
+            r"\b\d[ -]?\d[ -]?\d[ -]?\d[ -]?\d[ -]?\d[ -]?\d[ -]?\d[ -]?\d\b"
+        ),
         # Canadian postal code: A1A 1A1
-        "postal_ca": re.compile(r"\b[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z]\s?\d[ABCEGHJ-NPRSTV-Z]\d\b", re.IGNORECASE),
+        "postal_ca": re.compile(
+            r"\b[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z]\s?\d[ABCEGHJ-NPRSTV-Z]\d\b",
+            re.IGNORECASE,
+        ),
     },
     "DE": {
         # German Personalausweis not standardized for regex; include 9-10 alphanum as placeholder
@@ -98,8 +107,6 @@ def _compile_active_patterns() -> Dict[str, re.Pattern]:
     return pats
 
 
-
-
 def detect_pii(text: str) -> Dict[str, Any]:
     entities: List[Dict[str, Any]] = []
     counts: Dict[str, int] = {}
@@ -118,11 +125,13 @@ def detect_pii(text: str) -> Dict[str, Any]:
             if ptype == "credit_card" and not _luhn_check(val):
                 continue
             counts[ptype] = counts.get(ptype, 0) + 1
-            entities.append({
-                "type": ptype,
-                "value_preview": _mask(val),
-                "span": [m.start(), m.end()],
-            })
+            entities.append(
+                {
+                    "type": ptype,
+                    "value_preview": _mask(val),
+                    "span": [m.start(), m.end()],
+                }
+            )
 
     types_present = sorted(list(counts.keys()))
     return {

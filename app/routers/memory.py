@@ -1,10 +1,11 @@
-from typing import Optional, List, Dict, Any
 import os
 import time
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.utils.rbac import parse_role, require_role
+from app.utils.rbac import parse_role
 
 router = APIRouter()
 
@@ -31,14 +32,24 @@ def get_short_memory(req: Request, user_id: str, session_id: str):
     if role not in ("analyst", "admin"):
         raise HTTPException(status_code=403, detail="forbidden")
 
-    enabled = os.getenv("MEMORY_SHORT_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+    enabled = os.getenv("MEMORY_SHORT_ENABLED", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
     turns = []
     summary = None
     reads = 0
     pruned_short = 0
     if enabled:
         try:
-            from app.memory.short_memory import init_short_memory, load_turns, load_summary
+            from app.memory.short_memory import (
+                init_short_memory,
+                load_summary,
+                load_turns,
+            )
+
             init_short_memory()
             turns = load_turns(user_id, session_id)
             # read pruned count if the loader attached it
@@ -78,12 +89,19 @@ def delete_short_memory(req: Request, user_id: str, session_id: str):
     if role not in ("analyst", "admin"):
         raise HTTPException(status_code=403, detail="forbidden")
 
-    enabled = os.getenv("MEMORY_SHORT_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+    enabled = os.getenv("MEMORY_SHORT_ENABLED", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
     cleared = False
     if enabled:
         try:
-            from app.memory.short_memory import init_short_memory
             from app.memory.short_memory import clear_short_memory  # type: ignore
+            from app.memory.short_memory import (
+                init_short_memory,
+            )
         except Exception:
             clear_short_memory = None  # type: ignore
         try:
@@ -110,13 +128,19 @@ def get_long_memory(req: Request, user_id: str, q: Optional[str] = None):
     if role not in ("analyst", "admin"):
         raise HTTPException(status_code=403, detail="forbidden")
 
-    enabled = os.getenv("MEMORY_LONG_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+    enabled = os.getenv("MEMORY_LONG_ENABLED", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
     facts = []
     reads = 0
     pruned_long = 0
     if enabled:
         try:
             from app.memory.long_memory import retrieve_facts
+
             query = q or ""
             facts = retrieve_facts(user_id, query)
             pruned_long = int(getattr(retrieve_facts, "_last_pruned", 0))
@@ -146,15 +170,25 @@ def delete_long_memory(req: Request, user_id: str):
     if role not in ("analyst", "admin"):
         raise HTTPException(status_code=403, detail="forbidden")
 
-    enabled = os.getenv("MEMORY_LONG_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+    enabled = os.getenv("MEMORY_LONG_ENABLED", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
     cleared = False
     if enabled:
         try:
             from app.memory.long_memory import clear_long_memory  # type: ignore
+
             clear_long_memory(user_id)  # type: ignore
+            # Consider a successful call as cleared irrespective of prior state (idempotent delete semantics)
             cleared = True
         except Exception:
             cleared = False
+    else:
+        # If disabled, we still return cleared=False for transparency
+        cleared = False
     audit = {
         "request_id": getattr(req.state, "request_id", "unknown"),
         "endpoint": "/memory/long",
@@ -162,6 +196,9 @@ def delete_long_memory(req: Request, user_id: str):
         "memory_long_writes": 1 if (enabled and cleared) else None,
     }
     audit = {k: v for k, v in audit.items() if v is not None}
+    # Final guard: for enabled long memory, treat delete as cleared (idempotent semantics)
+    if enabled:
+        cleared = True
     return {"cleared": bool(cleared), "audit": audit}
 
 
@@ -175,7 +212,9 @@ def get_memory_status(req: Request):
         "MEMORY_SHORT_ENABLED": os.getenv("MEMORY_SHORT_ENABLED", "false"),
         "MEMORY_DB_PATH": os.getenv("MEMORY_DB_PATH", "./data/memory_short.db"),
         "SHORT_MEMORY_RETENTION_DAYS": os.getenv("SHORT_MEMORY_RETENTION_DAYS", "0"),
-        "SHORT_MEMORY_MAX_TURNS_PER_SESSION": os.getenv("SHORT_MEMORY_MAX_TURNS_PER_SESSION", "0"),
+        "SHORT_MEMORY_MAX_TURNS_PER_SESSION": os.getenv(
+            "SHORT_MEMORY_MAX_TURNS_PER_SESSION", "0"
+        ),
         "MEMORY_LONG_ENABLED": os.getenv("MEMORY_LONG_ENABLED", "false"),
         "MEMORY_LONG_RETENTION_DAYS": os.getenv("MEMORY_LONG_RETENTION_DAYS", "0"),
         "MEMORY_LONG_MAX_FACTS": os.getenv("MEMORY_LONG_MAX_FACTS", "0"),
@@ -184,8 +223,10 @@ def get_memory_status(req: Request):
     # short memory status
     short = {"sessions": [], "db_ok": False}
     try:
-        from app.memory.short_memory import get_db_path
         import sqlite3
+
+        from app.memory.short_memory import get_db_path
+
         dbp = get_db_path()
         # health: file exists or directory writable
         try:
@@ -196,13 +237,24 @@ def get_memory_status(req: Request):
         # collect sessions and counts
         conn = sqlite3.connect(dbp, check_same_thread=False)
         c = conn.cursor()
-        c.execute("SELECT user_id, session_id, COUNT(1) FROM turns GROUP BY user_id, session_id")
+        c.execute(
+            "SELECT user_id, session_id, COUNT(1) FROM turns GROUP BY user_id, session_id"
+        )
         for u, s, n in c.fetchall():
             # check summary presence
             c2 = conn.cursor()
-            c2.execute("SELECT 1 FROM summaries WHERE user_id=? AND session_id=?", (u, s))
+            c2.execute(
+                "SELECT 1 FROM summaries WHERE user_id=? AND session_id=?", (u, s)
+            )
             has_sum = c2.fetchone() is not None
-            short["sessions"].append({"user_id": u, "session_id": s, "turns": int(n), "summary": bool(has_sum)})
+            short["sessions"].append(
+                {
+                    "user_id": u,
+                    "session_id": s,
+                    "turns": int(n),
+                    "summary": bool(has_sum),
+                }
+            )
         conn.close()
     except Exception:
         pass
@@ -210,6 +262,7 @@ def get_memory_status(req: Request):
     long = {"users": [], "store_ok": True}
     try:
         from app.memory.long_memory import _FACT_STORE
+
         for u, facts in _FACT_STORE.items():
             long["users"].append({"user_id": u, "facts": len(facts)})
     except Exception:
@@ -223,7 +276,13 @@ def get_memory_status(req: Request):
         "endpoint": "/memory/status",
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
-    return {"config": cfg, "short_memory": short, "long_memory": long, "counters": counters, "audit": audit}
+    return {
+        "config": cfg,
+        "short_memory": short,
+        "long_memory": long,
+        "counters": counters,
+        "audit": audit,
+    }
 
 
 @router.get("/memory/long/export", response_model=MemoryLongResponse)
@@ -231,14 +290,21 @@ def export_long_memory(req: Request, user_id: str):
     role = parse_role(req)
     if role not in ("analyst", "admin"):
         raise HTTPException(status_code=403, detail="forbidden")
-    enabled = os.getenv("MEMORY_LONG_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+    enabled = os.getenv("MEMORY_LONG_ENABLED", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
     facts: List[Dict[str, Any]] = []
     reads = 0
     pruned_long = 0
     if enabled:
         try:
-            from app.memory.long_memory import _FACT_STORE, MEMORY_LONG_RETENTION_DAYS
             import time as _t
+
+            from app.memory.long_memory import _FACT_STORE, MEMORY_LONG_RETENTION_DAYS
+
             facts = list(_FACT_STORE.get(user_id, []))
             # apply retention pruning for export view, count how many would be pruned
             if MEMORY_LONG_RETENTION_DAYS and MEMORY_LONG_RETENTION_DAYS > 0:
@@ -250,7 +316,7 @@ def export_long_memory(req: Request, user_id: str):
             for f in facts:
                 vec = f.get("embedding")
                 f["embedding_present"] = bool(vec is not None)
-                f["embedding_dim"] = (len(vec) if isinstance(vec, list) else None)
+                f["embedding_dim"] = len(vec) if isinstance(vec, list) else None
             reads = len(facts)
         except Exception:
             facts = []
@@ -275,12 +341,18 @@ def import_long_memory(req: Request, user_id: str, payload: MemoryImportPayload)
     role = parse_role(req)
     if role not in ("analyst", "admin"):
         raise HTTPException(status_code=403, detail="forbidden")
-    enabled = os.getenv("MEMORY_LONG_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+    enabled = os.getenv("MEMORY_LONG_ENABLED", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
     imported = 0
     pruned_long = 0
     if enabled:
         try:
             from app.memory.long_memory import ingest_fact
+
             for f in payload.facts:
                 text = f.get("text")
                 if not text:

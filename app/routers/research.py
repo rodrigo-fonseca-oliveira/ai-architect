@@ -4,12 +4,12 @@ from typing import List
 
 from fastapi import APIRouter, HTTPException, Request
 
-from app.schemas.research import ResearchRequest, ResearchResponse, AgentStep, Finding
+from app.schemas.research import AgentStep, Finding, ResearchRequest, ResearchResponse
 from app.services.agent import Agent
 from app.utils.audit import make_hash, write_audit
 from app.utils.cost import estimate_tokens_and_cost
-from db.session import init_db, get_session
-from app.utils.rbac import parse_role, is_allowed_agent_step
+from app.utils.rbac import is_allowed_agent_step, parse_role
+from db.session import get_session, init_db
 
 router = APIRouter()
 
@@ -30,7 +30,9 @@ def post_research(req: Request, payload: ResearchRequest):
     role = parse_role(req)
     for s in steps:
         if not is_allowed_agent_step(role, s):
-            raise HTTPException(status_code=403, detail=f"step '{s}' not allowed for this role")
+            raise HTTPException(
+                status_code=403, detail=f"step '{s}' not allowed for this role"
+            )
 
     agent = Agent()
     findings, sources, audit_steps, flagged = agent.run(payload.topic, steps)
@@ -38,12 +40,15 @@ def post_research(req: Request, payload: ResearchRequest):
     # Token & cost (very rough)
     model = os.getenv("LLM_MODEL", "gpt-4o-mini")
     text_out = "\n".join([f.get("summary", "") for f in findings])
-    tp, tc, cost = estimate_tokens_and_cost(model=model, prompt=payload.topic, completion=text_out)
+    tp, tc, cost = estimate_tokens_and_cost(
+        model=model, prompt=payload.topic, completion=text_out
+    )
 
     latency_ms = int((time.perf_counter() - start) * 1000)
 
     # Prompt registry (non-disruptive): record prompt name/version in audit
     from app.utils.prompts import load_prompt
+
     prompt_name = "research"
     prompt_version_env = os.getenv("PROMPT_RESEARCH_VERSION")
     try:
@@ -94,4 +99,6 @@ def post_research(req: Request, payload: ResearchRequest):
     out_findings: List[Finding] = [Finding(**f) for f in findings]
     out_steps: List[AgentStep] = [AgentStep(**s) for s in audit_steps]
 
-    return ResearchResponse(findings=out_findings, sources=sources, steps=out_steps, audit=audit)
+    return ResearchResponse(
+        findings=out_findings, sources=sources, steps=out_steps, audit=audit
+    )

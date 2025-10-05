@@ -1,5 +1,6 @@
 import pytest
-from app.utils.prompts import load_prompt, PromptNotFound
+
+from app.utils.prompts import PromptNotFound, load_prompt
 
 
 def test_load_latest_prompt():

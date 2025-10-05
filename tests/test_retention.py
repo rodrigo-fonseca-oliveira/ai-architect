@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 
-from db.session import get_session, init_db
-from db.models import Audit
 from app.utils.retention import sweep_audit
+from db.models import Audit
+from db.session import get_session, init_db
 
 
 def test_sweep_audit(tmp_path, monkeypatch):

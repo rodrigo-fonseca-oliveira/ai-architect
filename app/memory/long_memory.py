@@ -1,6 +1,8 @@
-import os
 import hashlib
-from typing import List, Dict, Any
+import os
+from typing import Any, Dict, List
+
+from app.services.rag_retriever import LocalEmbeddings, OpenAIEmbeddings, StubEmbeddings
 
 # Legacy embeddings removed; using simple cosine over in-process store
 from app.utils.logger import get_logger
@@ -34,6 +36,7 @@ def retrieve_facts(user_id: str, query: str, top_k: int = 5) -> List[Dict[str, A
     pruned = 0
     if MEMORY_LONG_RETENTION_DAYS and MEMORY_LONG_RETENTION_DAYS > 0:
         import time
+
         cutoff = time.time() - (MEMORY_LONG_RETENTION_DAYS * 86400)
         before = len(facts)
         facts = [f for f in facts if f.get("created_at", 0) >= cutoff]
@@ -49,6 +52,7 @@ def retrieve_facts(user_id: str, query: str, top_k: int = 5) -> List[Dict[str, A
 
     def cos(a, b):
         import math
+
         num = sum(x * y for x, y in zip(a, b))
         da = math.sqrt(sum(x * x for x in a))
         db = math.sqrt(sum(y * y for y in b))
@@ -69,7 +73,9 @@ def retrieve_facts(user_id: str, query: str, top_k: int = 5) -> List[Dict[str, A
     return [f for _, f in scored[:top_k]]
 
 
-def ingest_fact(user_id: str, fact: str, metadata: Dict[str, Any] | None = None) -> bool:
+def ingest_fact(
+    user_id: str, fact: str, metadata: Dict[str, Any] | None = None
+) -> bool:
     emb = _get_embedder()
     try:
         vec = emb.embed([fact])[0]
@@ -84,13 +90,24 @@ def ingest_fact(user_id: str, fact: str, metadata: Dict[str, Any] | None = None)
             exists = i
             break
     import time
-    item = {"id": _id, "text": fact, "metadata": metadata or {}, "embedding": vec, "created_at": time.time()}
+
+    item = {
+        "id": _id,
+        "text": fact,
+        "metadata": metadata or {},
+        "embedding": vec,
+        "created_at": time.time(),
+    }
     if exists is not None:
         lst[exists] = item
     else:
         lst.append(item)
     # enforce max facts per user if configured
-    if MEMORY_LONG_MAX_FACTS and MEMORY_LONG_MAX_FACTS > 0 and len(lst) > MEMORY_LONG_MAX_FACTS:
+    if (
+        MEMORY_LONG_MAX_FACTS
+        and MEMORY_LONG_MAX_FACTS > 0
+        and len(lst) > MEMORY_LONG_MAX_FACTS
+    ):
         # evict oldest by created_at
         before = len(lst)
         lst.sort(key=lambda f: f.get("created_at", 0), reverse=False)

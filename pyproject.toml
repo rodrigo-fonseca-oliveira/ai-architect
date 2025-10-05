@@ -39,4 +39,12 @@ dependencies = [
 
 [tool.ruff]
 line-length = 100
-select = ["E", "F", "I"]
+lint.select = ["E", "F", "I"]
+lint.ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"app/main.py" = ["E402"]
+"app/schemas/research.py" = ["E402"]
+"tests/test_memory_endpoints.py" = ["E402"]
+"tests/test_memory_long.py" = ["E402"]
+"tests/test_memory_short.py" = ["E402"]

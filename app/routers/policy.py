@@ -1,20 +1,22 @@
+import os
 import time
 from typing import List, Optional
-import os
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from app.utils.rbac import parse_role
-from app.utils.audit import make_hash
 from app.services import policy_navigator as policy
+from app.utils.audit import make_hash
+from app.utils.rbac import parse_role
 
 router = APIRouter()
 
 
 class PolicyRequest(BaseModel):
     question: str = Field(min_length=3)
-    max_subqs: Optional[int] = Field(default=None, description="Override max sub-questions")
+    max_subqs: Optional[int] = Field(
+        default=None, description="Override max sub-questions"
+    )
 
 
 class PolicyResponse(BaseModel):
@@ -28,7 +30,12 @@ def post_policy_navigator(req: Request, payload: PolicyRequest):
     role = parse_role(req)
     if role not in ("analyst", "admin"):
         raise HTTPException(status_code=403, detail="forbidden")
-    if os.getenv("POLICY_NAV_ENABLED", "true").lower() not in ("1", "true", "yes", "on"):
+    if os.getenv("POLICY_NAV_ENABLED", "true").lower() not in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    ):
         raise HTTPException(status_code=503, detail="policy navigator disabled")
 
     start = time.perf_counter()
@@ -85,4 +92,8 @@ def post_policy_navigator(req: Request, payload: PolicyRequest):
         "steps": steps,
     }
 
-    return PolicyResponse(recommendation=out.get("answer", ""), citations=out.get("citations", []), audit=audit)
+    return PolicyResponse(
+        recommendation=out.get("answer", ""),
+        citations=out.get("citations", []),
+        audit=audit,
+    )

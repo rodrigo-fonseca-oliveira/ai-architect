@@ -1,4 +1,5 @@
 import os
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -13,7 +14,14 @@ def test_rag_multi_query_and_hyde_flags(tmp_path):
     os.environ["RAG_HYDE_ENABLED"] = "true"
     # no embeddings provider needed for LC-only stub
     headers = {"X-User-Role": "analyst"}
-    r = client.post("/query", json={"question": "What is GDPR and how does it regulate data retention?", "grounded": True}, headers=headers)
+    r = client.post(
+        "/query",
+        json={
+            "question": "What is GDPR and how does it regulate data retention?",
+            "grounded": True,
+        },
+        headers=headers,
+    )
     assert r.status_code == 200
     body = r.json()
     assert "audit" in body

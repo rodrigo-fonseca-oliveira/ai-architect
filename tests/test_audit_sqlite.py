@@ -1,4 +1,3 @@
-import os
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -11,7 +10,9 @@ def test_audit_row_persisted(tmp_path, monkeypatch):
 
     # Reimport query router to ensure it binds new DB
     from importlib import reload
+
     import app.routers.query as query
+
     reload(query)
 
     client = TestClient(app)

@@ -1,4 +1,5 @@
 import os
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -7,7 +8,9 @@ client = TestClient(app)
 
 
 def test_pii_remediation_requires_role():
-    r = client.post("/pii_remediation", json={"text": "Contact me at a@b.com and 123-45-6789"})
+    r = client.post(
+        "/pii_remediation", json={"text": "Contact me at a@b.com and 123-45-6789"}
+    )
     assert r.status_code == 403
 
 
@@ -17,7 +20,11 @@ def test_pii_remediation_happy_path_stub(tmp_path):
     headers = {"X-User-Role": "analyst"}
     r = client.post(
         "/pii_remediation",
-        json={"text": "Email a@b.com and SSN 123-45-6789 present.", "return_snippets": True, "grounded": True},
+        json={
+            "text": "Email a@b.com and SSN 123-45-6789 present.",
+            "return_snippets": True,
+            "grounded": True,
+        },
         headers=headers,
     )
     assert r.status_code == 200

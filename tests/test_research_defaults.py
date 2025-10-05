@@ -1,4 +1,4 @@
-from app.schemas.research import ResearchResponse, Finding, AgentStep
+from app.schemas.research import AgentStep, Finding, ResearchResponse
 
 
 def test_research_response_steps_default_isolation():

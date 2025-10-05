@@ -9,7 +9,9 @@ PRICES_PER_1K = {
 }
 
 
-def estimate_tokens_and_cost(model: str, prompt: str, completion: str) -> Tuple[int, int, float]:
+def estimate_tokens_and_cost(
+    model: str, prompt: str, completion: str
+) -> Tuple[int, int, float]:
     tp = max(1, len(prompt) // 4)  # crude: ~4 chars per token
     tc = max(1, len(completion) // 4)
     price = PRICES_PER_1K.get(model, PRICES_PER_1K.get("gpt-4o-mini"))

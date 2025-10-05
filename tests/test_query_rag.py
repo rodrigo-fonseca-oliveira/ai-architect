@@ -1,5 +1,3 @@
-import os
-from pathlib import Path
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -9,7 +7,9 @@ def test_query_with_rag_citations(tmp_path, monkeypatch):
     # Prepare temp docs and vectorstore
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
-    (docs_dir / "gdpr.txt").write_text("GDPR is a regulation in EU about data protection.")
+    (docs_dir / "gdpr.txt").write_text(
+        "GDPR is a regulation in EU about data protection."
+    )
 
     vec_dir = tmp_path / ".vector"
     monkeypatch.setenv("DOCS_PATH", str(docs_dir))

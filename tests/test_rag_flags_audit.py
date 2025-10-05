@@ -1,4 +1,3 @@
-import os
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -8,7 +7,9 @@ def test_rag_flags_propagate_to_audit(tmp_path, monkeypatch):
     # Prepare minimal docs dir
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
-    (docs_dir / "gdpr.txt").write_text("GDPR is a regulation about data protection and retention.")
+    (docs_dir / "gdpr.txt").write_text(
+        "GDPR is a regulation about data protection and retention."
+    )
     monkeypatch.setenv("DOCS_PATH", str(docs_dir))
 
     # Enable flags

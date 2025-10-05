@@ -1,10 +1,7 @@
 import json
 from pathlib import Path
 
-from fastapi.testclient import TestClient
-
 from app.main import app
-
 
 if __name__ == "__main__":
     # Generate and save OpenAPI spec to docs/openapi.yaml (JSON->YAML not required; keep JSON or convert if needed)

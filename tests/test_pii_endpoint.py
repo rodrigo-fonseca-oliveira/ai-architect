@@ -1,4 +1,3 @@
-import os
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -19,7 +18,9 @@ def test_pii_endpoint_detects_and_audits(monkeypatch):
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert "Detected PII" in data["summary"] or data["summary"].startswith("No PII detected")
+    assert "Detected PII" in data["summary"] or data["summary"].startswith(
+        "No PII detected"
+    )
     assert isinstance(data["audit"].get("pii_entities_count"), int)
 
 
@@ -27,7 +28,9 @@ def test_pii_endpoint_optionally_returns_citations(monkeypatch, tmp_path):
     # LC default; no flags required
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
-    (docs_dir / "policy.txt").write_text("PII policy: do not share personal data externally.")
+    (docs_dir / "policy.txt").write_text(
+        "PII policy: do not share personal data externally."
+    )
     monkeypatch.setenv("DOCS_PATH", str(docs_dir))
 
     client = TestClient(app)

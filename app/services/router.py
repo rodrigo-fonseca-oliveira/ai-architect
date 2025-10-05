@@ -1,8 +1,10 @@
 import json
 import os
-from typing import Literal, List, Dict, Any
+from typing import Any, Dict, List, Literal
 
-Intent = Literal["qa", "pii_detect", "risk_score", "policy_navigator", "pii_remediation", "other"]
+Intent = Literal[
+    "qa", "pii_detect", "risk_score", "policy_navigator", "pii_remediation", "other"
+]
 
 _RULES_CACHE: Dict[str, Any] | None = None
 _BACKEND_NAME = "rules"
@@ -47,10 +49,14 @@ def _load_rules() -> Dict[str, Any]:
         if isinstance(kw_any, str):
             kw_any = [kw_any]
         kw_any = [str(s).lower() for s in kw_any if str(s).strip()]
-        norm_rules.append({"intent": intent, "keywords_any": kw_any, "priority": priority})
+        norm_rules.append(
+            {"intent": intent, "keywords_any": kw_any, "priority": priority}
+        )
     # sort by priority desc
     norm_rules.sort(key=lambda r: r.get("priority", 0), reverse=True)
-    default_intent = data.get("default_intent", "qa") if isinstance(data, dict) else "qa"
+    default_intent = (
+        data.get("default_intent", "qa") if isinstance(data, dict) else "qa"
+    )
     _RULES_CACHE = {"rules": norm_rules, "default_intent": default_intent}
     return _RULES_CACHE
 
@@ -79,13 +85,41 @@ def _route_builtin(question: str, grounded: bool) -> Intent:
     q = (question or "").lower()
     if grounded:
         return "qa"  # type: ignore[return-value]
-    if any(t in q for t in ("pii", "email", "ssn", "social security", "credit card", "iban", "ipv4", "ipv6", "passport", "phone number")):
+    if any(
+        t in q
+        for t in (
+            "pii",
+            "email",
+            "ssn",
+            "social security",
+            "credit card",
+            "iban",
+            "ipv4",
+            "ipv6",
+            "passport",
+            "phone number",
+        )
+    ):
         if any(w in q for w in ("redact", "mask", "anonymiz", "remediat")):
             return "pii_remediation"  # type: ignore[return-value]
         return "pii_detect"  # type: ignore[return-value]
-    if any(t in q for t in ("risk", "severity", "score", "risk score", "impact", "hazard", "danger")):
+    if any(
+        t in q
+        for t in (
+            "risk",
+            "severity",
+            "score",
+            "risk score",
+            "impact",
+            "hazard",
+            "danger",
+        )
+    ):
         return "risk_score"  # type: ignore[return-value]
-    if any(t in q for t in ("policy", "regulation", "regulatory", "compliance", "gdpr", "hipaa")):
+    if any(
+        t in q
+        for t in ("policy", "regulation", "regulatory", "compliance", "gdpr", "hipaa")
+    ):
         return "policy_navigator"  # type: ignore[return-value]
     return "qa"  # type: ignore[return-value]
 

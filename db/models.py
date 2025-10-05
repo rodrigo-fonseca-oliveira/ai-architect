@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime
 from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
+
 from .session import Base
 
 

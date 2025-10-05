@@ -1,4 +1,5 @@
 import os
+
 from dotenv import load_dotenv
 
 # Legacy retriever removed; script now validates docs exist and exits.

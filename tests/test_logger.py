@@ -1,9 +1,7 @@
-import json
 import logging
 from io import StringIO
 
-from app.utils.logger import get_logger
-from app.utils.logger import JsonFormatter
+from app.utils.logger import JsonFormatter, get_logger
 
 
 def test_logger_includes_request_id_and_exc_info():

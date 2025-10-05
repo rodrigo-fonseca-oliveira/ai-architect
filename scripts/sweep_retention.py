@@ -1,8 +1,7 @@
-import os
 from dotenv import load_dotenv
 
-from db.session import get_session, init_db
 from app.utils.retention import sweep_audit
+from db.session import get_session, init_db
 
 load_dotenv()
 

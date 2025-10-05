@@ -7,7 +7,10 @@ def test_research_happy_path():
     client = TestClient(app)
     r = client.post(
         "/research",
-        json={"topic": "GDPR and AI", "steps": ["search", "fetch", "summarize", "risk_check"]},
+        json={
+            "topic": "GDPR and AI",
+            "steps": ["search", "fetch", "summarize", "risk_check"],
+        },
         headers={"X-User-Role": "analyst"},
     )
     assert r.status_code == 200
@@ -20,13 +23,19 @@ def test_research_happy_path():
 def test_research_safety_block_offline_stub():
     # In stub mode, fetch won't block, but we can still run a minimal call
     client = TestClient(app)
-    r = client.post("/research", json={"topic": "Test topic"}, headers={"X-User-Role": "analyst"})
+    r = client.post(
+        "/research", json={"topic": "Test topic"}, headers={"X-User-Role": "analyst"}
+    )
     assert r.status_code == 200
 
 
 def test_research_denylist_flag(monkeypatch):
     client = TestClient(app)
     monkeypatch.setenv("DENYLIST", "phi,ssn,credit_card")
-    r = client.post("/research", json={"topic": "This includes ssn"}, headers={"X-User-Role": "analyst"})
+    r = client.post(
+        "/research",
+        json={"topic": "This includes ssn"},
+        headers={"X-User-Role": "analyst"},
+    )
     assert r.status_code == 200
     assert r.json()["audit"]["compliance_flag"] is True

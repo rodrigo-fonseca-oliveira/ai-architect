@@ -49,7 +49,12 @@ def heuristic_score(text: str) -> Dict[str, object]:
         label = "low"
         rationale.append("no strong risk indicators")
 
-    return {"label": label, "value": score, "rationale": "; ".join(rationale), "method": "heuristic"}
+    return {
+        "label": label,
+        "value": score,
+        "rationale": "; ".join(rationale),
+        "method": "heuristic",
+    }
 
 
 def _deterministic_ml_score(text: str, threshold: float) -> Tuple[str, float, str]:
@@ -67,7 +72,11 @@ def _deterministic_ml_score(text: str, threshold: float) -> Tuple[str, float, st
     raw = min(1.0, (token_hits * 0.45) + (min(length, 500) / 500.0) * 0.2)
     # map to [0,1]
     value = max(0.0, min(1.0, raw))
-    label = "high" if value >= threshold else ("medium" if value >= (threshold * 0.75) else "low")
+    label = (
+        "high"
+        if value >= threshold
+        else ("medium" if value >= (threshold * 0.75) else "low")
+    )
     return label, value, "ml"
 
 
@@ -79,5 +88,10 @@ def score(text: str) -> Dict[str, object]:
         except Exception:
             threshold = 0.6
         label, value, method = _deterministic_ml_score(text, threshold)
-        return {"label": label, "value": value, "rationale": f"threshold={threshold}", "method": method}
+        return {
+            "label": label,
+            "value": value,
+            "rationale": f"threshold={threshold}",
+            "method": method,
+        }
     return heuristic_score(text)

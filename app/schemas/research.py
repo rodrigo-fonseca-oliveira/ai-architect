@@ -1,4 +1,5 @@
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -26,6 +27,7 @@ class Finding(BaseModel):
 
 
 from pydantic import Field
+
 
 class ResearchResponse(BaseModel):
     findings: List[Finding]

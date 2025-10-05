@@ -1,5 +1,5 @@
 import os
-import time
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -19,9 +19,18 @@ def test_short_memory_retention_and_cap(tmp_path):
     headers = {"X-User-Role": "analyst"}
     # add turns via /query; simulate multiple messages
     for i in range(5):
-        client.post("/query", json={"question": f"msg {i} with some content that is long enough to be processed.", "user_id": "u1", "session_id": "s1"})
+        client.post(
+            "/query",
+            json={
+                "question": f"msg {i} with some content that is long enough to be processed.",
+                "user_id": "u1",
+                "session_id": "s1",
+            },
+        )
     # list turns should be capped to 3
-    r = client.get("/memory/short", params={"user_id": "u1", "session_id": "s1"}, headers=headers)
+    r = client.get(
+        "/memory/short", params={"user_id": "u1", "session_id": "s1"}, headers=headers
+    )
     assert r.status_code == 200
     data = r.json()
     assert isinstance(data.get("turns", []), list)
@@ -54,7 +63,12 @@ def test_long_memory_retention_and_maxfacts():
         assert "id" in f0 and "text" in f0 and "created_at" in f0 and "metadata" in f0
         assert "embedding_present" in f0 and "embedding_dim" in f0
     # import roundtrip to another user
-    r2 = client.post("/memory/long/import", params={"user_id": uid+"_copy"}, json={"facts": [{"text": f.get("text", "")} for f in facts]}, headers=headers)
+    r2 = client.post(
+        "/memory/long/import",
+        params={"user_id": uid + "_copy"},
+        json={"facts": [{"text": f.get("text", "")} for f in facts]},
+        headers=headers,
+    )
     assert r2.status_code == 200
     rb = r2.json()
     assert rb.get("imported", 0) == len(facts)

@@ -25,6 +25,7 @@ def test_credit_card_luhn_validation():
 
 def test_router_integration_audit_fields(monkeypatch, client=None):
     from fastapi.testclient import TestClient
+
     from app.main import app
 
     monkeypatch.setenv("ROUTER_ENABLED", "true")

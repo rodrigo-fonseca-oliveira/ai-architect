@@ -1,14 +1,13 @@
-from typing import Optional
 import os
 import time
 
-from fastapi import APIRouter, Request, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from app.services.risk_scorer import score
 from app.utils.audit import make_hash, write_audit
-from app.utils.rbac import parse_role
 from app.utils.cost import estimate_tokens_and_cost
+from app.utils.rbac import parse_role
 
 router = APIRouter()
 
@@ -38,7 +37,9 @@ def post_risk(req: Request, payload: RiskRequest):
 
     # Tokens/cost (stub)
     model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    tp, tc, cost = estimate_tokens_and_cost(model=model, prompt=payload.text, completion=answer)
+    tp, tc, cost = estimate_tokens_and_cost(
+        model=model, prompt=payload.text, completion=answer
+    )
 
     latency_ms = int((time.perf_counter() - start) * 1000)
     audit = {
@@ -58,7 +59,7 @@ def post_risk(req: Request, payload: RiskRequest):
 
     # Persist audit (best-effort)
     try:
-        from db.session import init_db, get_session
+        from db.session import get_session, init_db
 
         init_db()
         db = get_session()
@@ -81,4 +82,9 @@ def post_risk(req: Request, payload: RiskRequest):
     except Exception:
         pass
 
-    return RiskResponse(label=result["label"], value=result["value"], rationale=result["rationale"], audit=audit)
+    return RiskResponse(
+        label=result["label"],
+        value=result["value"],
+        rationale=result["rationale"],
+        audit=audit,
+    )

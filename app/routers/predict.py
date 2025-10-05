@@ -1,25 +1,28 @@
 import os
 import time
-from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.schemas.predict import PredictRequest, PredictResponse
 from app.services.mlflow_client import MLflowClientWrapper
-from app.utils.rbac import require_role
 from app.utils.audit import make_hash, write_audit
 from app.utils.cost import estimate_tokens_and_cost
-from db.session import init_db, get_session
+from app.utils.rbac import require_role
+from db.session import get_session, init_db
 
 router = APIRouter()
 
 
 @router.post("/predict", response_model=PredictResponse)
-def post_predict(req: Request, payload: PredictRequest, role: str = Depends(require_role("analyst"))):
+def post_predict(
+    req: Request, payload: PredictRequest, role: str = Depends(require_role("analyst"))
+):
     start = time.perf_counter()
 
     if not isinstance(payload.features, dict) or not payload.features:
-        raise HTTPException(status_code=400, detail="features must be a non-empty object")
+        raise HTTPException(
+            status_code=400, detail="features must be a non-empty object"
+        )
 
     client = MLflowClientWrapper()
     try:
@@ -43,7 +46,9 @@ def post_predict(req: Request, payload: PredictRequest, role: str = Depends(requ
 
     # Audit + cost
     model_name = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    tp, tc, cost = estimate_tokens_and_cost(model=model_name, prompt=str(payload.features), completion=str(pred))
+    tp, tc, cost = estimate_tokens_and_cost(
+        model=model_name, prompt=str(payload.features), completion=str(pred)
+    )
 
     latency_ms = int((time.perf_counter() - start) * 1000)
     audit = {

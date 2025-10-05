@@ -1,8 +1,8 @@
 import os
 import time
-import hashlib
+from typing import Any, Dict, List, Tuple
+
 import requests
-from typing import List, Dict, Any, Tuple
 
 from app.utils.audit import make_hash
 
@@ -13,7 +13,9 @@ class Agent:
         # Optional allowlist for safety
         self.url_allowlist = os.getenv("AGENT_URL_ALLOWLIST", "").split(",")
 
-    def _audit_step(self, name: str, inputs: Dict[str, Any], outputs: Dict[str, Any], start: float) -> Dict[str, Any]:
+    def _audit_step(
+        self, name: str, inputs: Dict[str, Any], outputs: Dict[str, Any], start: float
+    ) -> Dict[str, Any]:
         latency_ms = int((time.perf_counter() - start) * 1000)
         out_hash = make_hash(str(outputs)) or ""
         return {
@@ -40,7 +42,9 @@ class Agent:
         contents: List[Dict[str, Any]] = []
         if self.live_mode:
             for u in urls[:3]:
-                if self.url_allowlist and not any(u.startswith(p.strip()) for p in self.url_allowlist if p.strip()):
+                if self.url_allowlist and not any(
+                    u.startswith(p.strip()) for p in self.url_allowlist if p.strip()
+                ):
                     continue
                 try:
                     r = requests.get(u, timeout=3)
@@ -52,28 +56,46 @@ class Agent:
             # Offline stub content
             for u in urls[:3]:
                 contents.append({"url": u, "text": f"Sample content about {u}"})
-        step = self._audit_step("fetch", {"urls": urls[:3]}, {"count": len(contents)}, start)
+        step = self._audit_step(
+            "fetch", {"urls": urls[:3]}, {"count": len(contents)}, start
+        )
         return contents, step
 
-    def summarize(self, docs: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    def summarize(
+        self, docs: List[Dict[str, Any]]
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         start = time.perf_counter()
         findings = []
         for d in docs[:3]:
             text = d.get("text", "")
             summary = text[:160].strip()
-            findings.append({"title": d.get("url", ""), "summary": summary, "url": d.get("url")})
-        step = self._audit_step("summarize", {"inputs": len(docs)}, {"findings": len(findings)}, start)
+            findings.append(
+                {"title": d.get("url", ""), "summary": summary, "url": d.get("url")}
+            )
+        step = self._audit_step(
+            "summarize", {"inputs": len(docs)}, {"findings": len(findings)}, start
+        )
         return findings, step
 
-    def risk_check(self, topic: str, findings: List[Dict[str, Any]]) -> Tuple[bool, Dict[str, Any]]:
+    def risk_check(
+        self, topic: str, findings: List[Dict[str, Any]]
+    ) -> Tuple[bool, Dict[str, Any]]:
         start = time.perf_counter()
-        denylist = [s.strip().lower() for s in os.getenv("DENYLIST", "").split(",") if s.strip()]
-        combined = (topic + "\n" + "\n".join([f.get("summary", "") for f in findings])).lower()
+        denylist = [
+            s.strip().lower() for s in os.getenv("DENYLIST", "").split(",") if s.strip()
+        ]
+        combined = (
+            topic + "\n" + "\n".join([f.get("summary", "") for f in findings])
+        ).lower()
         flagged = any(term in combined for term in denylist)
-        step = self._audit_step("risk_check", {"denylist": denylist}, {"flagged": flagged}, start)
+        step = self._audit_step(
+            "risk_check", {"denylist": denylist}, {"flagged": flagged}, start
+        )
         return flagged, step
 
-    def run(self, topic: str, steps: List[str]) -> Tuple[List[Dict[str, Any]], List[str], List[Dict[str, Any]], bool]:
+    def run(
+        self, topic: str, steps: List[str]
+    ) -> Tuple[List[Dict[str, Any]], List[str], List[Dict[str, Any]], bool]:
         audit_steps: List[Dict[str, Any]] = []
         sources: List[str] = []
         findings: List[Dict[str, Any]] = []

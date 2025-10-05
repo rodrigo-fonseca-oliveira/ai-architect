@@ -1,8 +1,11 @@
 import os
-import yaml
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
-PROMPTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "prompts")
+import yaml
+
+PROMPTS_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "prompts"
+)
 
 
 class PromptNotFound(Exception):

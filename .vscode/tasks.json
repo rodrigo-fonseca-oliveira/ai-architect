@@ -2,96 +2,34 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Run tests (pytest)",
+      "label": "Test (pytest -q)",
       "type": "shell",
-      "command": ". .venv/bin/activate && pytest tests",
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
+      "command": ". .venv/bin/activate && pytest -q",
+      "problemMatcher": []
     },
     {
-      "label": "Run tests (pytest -q)",
+      "label": "Serve (uvicorn)",
       "type": "shell",
-      "command": ". .venv/bin/activate && pytest -q tests",
-      "group": "test",
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
+      "command": ". .venv/bin/activate && uvicorn app.main:app --reload",
+      "problemMatcher": []
     },
     {
-      "label": "Ingest docs (RAG)",
+      "label": "Lint (ruff)",
       "type": "shell",
-      "command": ". .venv/bin/activate && python scripts/ingest_docs.py",
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
+      "command": ". .venv/bin/activate && ruff check .",
+      "problemMatcher": []
+    },
+    {
+      "label": "Export OpenAPI",
+      "type": "shell",
+      "command": ". .venv/bin/activate && make export-openapi",
+      "problemMatcher": []
     },
     {
       "label": "Sweep retention (audit)",
       "type": "shell",
       "command": ". .venv/bin/activate && python scripts/sweep_retention.py",
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
-    },
-    {
-      "label": "Run API (log to file)",
-      "type": "shell",
-      "command": ". .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 | tee logs/app.log",
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
-    },
-    {
-      "label": "ML: Train model",
-      "type": "shell",
-      "command": ". .venv/bin/activate && python ml/train.py",
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
-    },
-    {
-      "label": "ML: Check drift",
-      "type": "shell",
-      "command": ". .venv/bin/activate && python ml/drift.py",
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
-    },
-    {
-      "label": "Role test: guest grounded query (forbidden)",
-      "type": "shell",
-      "command": "curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:8000/query -H 'Content-Type: application/json' -d '{"question":"What is GDPR?","grounded":true}'",
-      "options": { "cwd": "${workspaceFolder}" }
-    },
-    {
-      "label": "Role test: analyst grounded query (allowed)",
-      "type": "shell",
-      "command": "curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:8000/query -H 'X-User-Role: analyst' -H 'Content-Type: application/json' -d '{"question":"What is GDPR?","grounded":true}'",
-      "options": { "cwd": "${workspaceFolder}" }
-    },
-    {
-      "label": "Role test: metrics admin only",
-      "type": "shell",
-      "command": "curl -s -o /dev/null -w '%{http_code}\n' localhost:8000/metrics",
-      "options": { "cwd": "${workspaceFolder}" }
-    },
-    {
-      "label": "Role test: metrics as admin",
-      "type": "shell",
-      "command": "curl -s -o /dev/null -w '%{http_code}\n' -H 'X-User-Role: admin' localhost:8000/metrics",
-      "options": { "cwd": "${workspaceFolder}" }
+      "problemMatcher": []
     }
   ]
 }

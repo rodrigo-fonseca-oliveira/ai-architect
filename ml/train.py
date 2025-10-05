@@ -1,7 +1,7 @@
 import os
+
 import mlflow
 import mlflow.sklearn
-import numpy as np
 import pandas as pd
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression
@@ -32,7 +32,9 @@ def main():
     mlflow.set_experiment(EXPERIMENT_NAME)
 
     df, y = load_or_generate_data()
-    X_train, X_test, y_train, y_test = train_test_split(df, y, test_size=0.25, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        df, y, test_size=0.25, random_state=42
+    )
 
     with mlflow.start_run() as run:
         params = {"C": 1.0, "max_iter": 200, "solver": "lbfgs"}

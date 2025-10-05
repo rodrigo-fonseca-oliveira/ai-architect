@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 # This module provides a LangChain RetrievalQA path behind a feature flag.
 # It is safe to import even if langchain is not installed because imports
@@ -13,8 +13,39 @@ def is_enabled() -> bool:
 
 def _normalize_terms(text: str) -> List[str]:
     tokens = [t.strip(".,:;!?()[]{}\"'`").lower() for t in text.split()]
-    stop = set(["what", "is", "the", "and", "or", "a", "an", "how", "to", "of", "in", "at", "for", "on", "does", "it", "that", "this", "about", "with", "be"])
-    terms = [t for t in tokens if t and (len(t) > 2 or t in ("gdpr", "pii", "ccpa", "hipaa", "policy", "encryption"))]
+    stop = set(
+        [
+            "what",
+            "is",
+            "the",
+            "and",
+            "or",
+            "a",
+            "an",
+            "how",
+            "to",
+            "of",
+            "in",
+            "at",
+            "for",
+            "on",
+            "does",
+            "it",
+            "that",
+            "this",
+            "about",
+            "with",
+            "be",
+        ]
+    )
+    terms = [
+        t
+        for t in tokens
+        if t
+        and (
+            len(t) > 2 or t in ("gdpr", "pii", "ccpa", "hipaa", "policy", "encryption")
+        )
+    ]
     terms = [t for t in terms if t not in stop]
     # dedupe preserve order
     seen = set()
@@ -41,16 +72,20 @@ def _scan_docs_for_terms(docs_path: str, terms: List[str]) -> List[Dict[str, Any
                     score = sum(1 for term in terms if term in t_low)
                     if score == 0:
                         # fallback: simple character overlap heuristic
-                        overlap = sum(1 for ch in set(" ".join(terms)) if ch and ch in t_low)
+                        overlap = sum(
+                            1 for ch in set(" ".join(terms)) if ch and ch in t_low
+                        )
                         score = overlap // 5  # scale down
                     if score > 0:
                         snippet = text[:200].replace("\n", " ")
-                        citations.append({
-                            "source": os.path.relpath(path, docs_path),
-                            "page": None,
-                            "snippet": snippet,
-                            "_score": score,
-                        })
+                        citations.append(
+                            {
+                                "source": os.path.relpath(path, docs_path),
+                                "page": None,
+                                "snippet": snippet,
+                                "_score": score,
+                            }
+                        )
                 except Exception:
                     continue
     return citations
@@ -86,7 +121,9 @@ def hyde_snippet(question: str) -> str:
     return f"This document discusses {head}. It provides guidance, definitions, and examples relevant to compliance and data protection."
 
 
-def _merge_citations(cit_sets: List[List[Dict[str, Any]]], k: int) -> List[Dict[str, Any]]:
+def _merge_citations(
+    cit_sets: List[List[Dict[str, Any]]], k: int
+) -> List[Dict[str, Any]]:
     acc: Dict[Tuple[str, int | None], Dict[str, Any]] = {}
     for cit_list in cit_sets:
         for c in cit_list:
@@ -114,10 +151,26 @@ def answer_with_citations(question: str, k: int = 3) -> Dict[str, Any]:
     citations: List[Dict[str, Any]] = []
     meta: Dict[str, Any] = {}
     try:
-        multi = os.getenv("RAG_MULTI_QUERY_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+        multi = os.getenv("RAG_MULTI_QUERY_ENABLED", "false").lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
         n = int(os.getenv("RAG_MULTI_QUERY_COUNT", "3"))
-        hyde = os.getenv("RAG_HYDE_ENABLED", "false").lower() in ("1", "true", "yes", "on")
-        meta.update({"rag_multi_query": multi, "rag_multi_count": n if multi else 0, "rag_hyde": hyde})
+        hyde = os.getenv("RAG_HYDE_ENABLED", "false").lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+        meta.update(
+            {
+                "rag_multi_query": multi,
+                "rag_multi_count": n if multi else 0,
+                "rag_hyde": hyde,
+            }
+        )
 
         # Always build at least two variants to improve recall
         base_variants = reformulate_queries(question, n=max(2, n if multi else 2))
@@ -167,13 +220,27 @@ def answer_with_citations(question: str, k: int = 3) -> Dict[str, Any]:
             except Exception:
                 text = ""
             snippet = (text[:200] if isinstance(text, str) else "").replace("\n", " ")
-            citations = [{"source": os.path.relpath(target_path, docs_path), "page": None, "snippet": snippet}]
+            citations = [
+                {
+                    "source": os.path.relpath(target_path, docs_path),
+                    "page": None,
+                    "snippet": snippet,
+                }
+            ]
     # As a last resort, synthesize a citation from code to ensure at least one
     if not citations:
         try:
             hy = hyde_snippet(question)
         except Exception:
             hy = f"Synthetic context for: {question}"
-        citations = [{"source": "synthetic", "page": None, "snippet": hy[:200].replace("\n", " ") }]
-    answer = "This is a stubbed answer. In Phase 4, RAG provides citations from local docs."
+        citations = [
+            {
+                "source": "synthetic",
+                "page": None,
+                "snippet": hy[:200].replace("\n", " "),
+            }
+        ]
+    answer = (
+        "This is a stubbed answer. In Phase 4, RAG provides citations from local docs."
+    )
     return {"answer": answer, "citations": citations, **meta}

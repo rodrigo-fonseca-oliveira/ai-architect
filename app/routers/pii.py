@@ -1,15 +1,14 @@
-from typing import Optional, List
 import os
 import time
+from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
-from app.utils.rbac import parse_role, require_role as require_min_role
+from app.services.pii_detector import detect_pii
 from app.utils.audit import make_hash, write_audit
 from app.utils.cost import estimate_tokens_and_cost
-
-from app.services.pii_detector import detect_pii
+from app.utils.rbac import parse_role
 
 router = APIRouter()
 
@@ -36,6 +35,7 @@ def post_pii(req: Request, payload: PiiRequest):
     role = parse_role(req)
     if role not in ("analyst", "admin"):
         from fastapi import HTTPException, status
+
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
 
     start = time.perf_counter()
@@ -49,18 +49,20 @@ def post_pii(req: Request, payload: PiiRequest):
         answer = "No PII detected."
 
     # Optional RAG citations for policy references
-    citations = []
     if payload.grounded:
         try:
             from app.services.langchain_rag import answer_with_citations
+
             resp = answer_with_citations("PII policy references", k=3)
-            citations = resp.get("citations", [])
+            _ = resp.get("citations", [])
         except Exception:
-            citations = []
+            pass
 
     # Cost/tokens
     model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    tp, tc, cost = estimate_tokens_and_cost(model=model, prompt=payload.text, completion=answer)
+    tp, tc, cost = estimate_tokens_and_cost(
+        model=model, prompt=payload.text, completion=answer
+    )
 
     latency_ms = int((time.perf_counter() - start) * 1000)
 
@@ -81,7 +83,7 @@ def post_pii(req: Request, payload: PiiRequest):
 
     # Persist audit
     try:
-        from db.session import init_db, get_session
+        from db.session import get_session, init_db
 
         init_db()
         db = get_session()
@@ -104,4 +106,10 @@ def post_pii(req: Request, payload: PiiRequest):
     except Exception:
         pass
 
-    return PiiResponse(summary=answer, entities=result["entities"], counts=result["counts"], types_present=result["types_present"], audit=audit)
+    return PiiResponse(
+        summary=answer,
+        entities=result["entities"],
+        counts=result["counts"],
+        types_present=result["types_present"],
+        audit=audit,
+    )

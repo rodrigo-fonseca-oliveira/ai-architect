@@ -1,4 +1,3 @@
-import os
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -15,6 +14,7 @@ def test_metrics_protected_with_token(monkeypatch):
     # Ensure the router reads the new env by reloading the module
     monkeypatch.setenv("METRICS_TOKEN", "secret")
     import importlib
+
     from app.routers import metrics as metrics_module
 
     importlib.reload(metrics_module)

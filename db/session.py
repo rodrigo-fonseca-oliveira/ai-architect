@@ -1,7 +1,7 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base, Session
 import os
-from typing import Generator
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 Base = declarative_base()
 _engine = None
@@ -20,7 +20,9 @@ def get_engine():
 def get_session() -> Session:
     global _SessionLocal
     if _SessionLocal is None:
-        _SessionLocal = sessionmaker(bind=get_engine(), autocommit=False, autoflush=False)
+        _SessionLocal = sessionmaker(
+            bind=get_engine(), autocommit=False, autoflush=False
+        )
     return _SessionLocal()
 
 

@@ -1,20 +1,24 @@
 import os
 import sqlite3
-from typing import List, Tuple
 from datetime import datetime
+from typing import List, Tuple
 
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 def get_db_path() -> str:
     return os.getenv("MEMORY_DB_PATH", "./data/memory_short.db")
+
 
 def get_summary_max_turns() -> int:
     return int(os.getenv("MEMORY_SHORT_MAX_TURNS", "10"))
 
+
 def get_retention_days() -> int:
     return int(os.getenv("SHORT_MEMORY_RETENTION_DAYS", "0"))
+
 
 def get_max_turns_per_session() -> int:
     return int(os.getenv("SHORT_MEMORY_MAX_TURNS_PER_SESSION", "0"))
@@ -117,7 +121,14 @@ def load_turns(user_id: str, session_id: str) -> List[Tuple[str, str]]:
     conn.close()
     # stash pruned count on logger for visibility (no global state)
     try:
-        logger.debug({"event": "short_memory_pruned", "count": pruned, "user_id": user_id, "session_id": session_id})
+        logger.debug(
+            {
+                "event": "short_memory_pruned",
+                "count": pruned,
+                "user_id": user_id,
+                "session_id": session_id,
+            }
+        )
     except Exception:
         pass
     # monkeypatch: attach attribute on function for router to read (simple approach)
@@ -185,7 +196,11 @@ def clear_short_memory(user_id: str, session_id: str) -> None:
     init_short_memory()
     conn = sqlite3.connect(get_db_path(), check_same_thread=False)
     c = conn.cursor()
-    c.execute("DELETE FROM turns WHERE user_id=? AND session_id=?", (user_id, session_id))
-    c.execute("DELETE FROM summaries WHERE user_id=? AND session_id=?", (user_id, session_id))
+    c.execute(
+        "DELETE FROM turns WHERE user_id=? AND session_id=?", (user_id, session_id)
+    )
+    c.execute(
+        "DELETE FROM summaries WHERE user_id=? AND session_id=?", (user_id, session_id)
+    )
     conn.commit()
     conn.close()

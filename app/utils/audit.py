@@ -1,10 +1,11 @@
 import hashlib
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
-from db.models import Audit
 from app.utils.logger import get_logger
+from db.models import Audit
 
 
 def make_hash(value: Optional[str]) -> Optional[str]:
@@ -38,5 +39,8 @@ def write_audit(db: Session, **kwargs) -> Audit:
     except Exception as e:  # noqa: BLE001
         db.rollback()
         # Log but do not raise, so API flow can continue
-        logger.error("audit_write_failed", extra={"request_id": kwargs.get("request_id"), "error": str(e)})
+        logger.error(
+            "audit_write_failed",
+            extra={"request_id": kwargs.get("request_id"), "error": str(e)},
+        )
     return record

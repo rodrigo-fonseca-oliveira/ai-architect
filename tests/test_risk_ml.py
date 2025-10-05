@@ -1,4 +1,3 @@
-import os
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -9,7 +8,9 @@ def test_risk_ml_enabled_changes_method_and_label(monkeypatch):
     monkeypatch.setenv("RISK_THRESHOLD", "0.6")
     client = TestClient(app)
 
-    payload = {"text": "Critical incident with severe impact and vulnerability exposed."}
+    payload = {
+        "text": "Critical incident with severe impact and vulnerability exposed."
+    }
     resp = client.post("/risk", json=payload, headers={"X-User-Role": "analyst"})
     assert resp.status_code == 200
     data = resp.json()

@@ -4,21 +4,21 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Callable
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from .routers.memory import router as memory_router
 from .routers.metrics import router as metrics_router
+from .routers.pii import router as pii_router
+from .routers.pii_remediation import router as pii_remediation_router
+from .routers.policy import router as policy_router
+from .routers.predict import router as predict_router
 from .routers.query import router as query_router
 from .routers.research import router as research_router
-from .routers.predict import router as predict_router
-from .routers.pii import router as pii_router
 from .routers.risk import router as risk_router
-from .routers.memory import router as memory_router
-from .routers.policy import router as policy_router
-from .routers.pii_remediation import router as pii_remediation_router
 from .utils.logger import get_logger
 from .utils.metrics import request_count, request_latency
 
@@ -37,6 +37,7 @@ async def lifespan(app: FastAPI):
     # Initialize DB tables
     try:
         from db.session import init_db
+
         init_db()
     except Exception as e:
         logger.error({"event": "db_init_error", "error": str(e)})
@@ -48,10 +49,11 @@ app = FastAPI(title="AI Risk & Compliance Monitor", version="0.1.0", lifespan=li
 
 # Exception handlers
 from .utils.exceptions import (
+    generic_exception_handler,
     http_exception_handler,
     validation_exception_handler,
-    generic_exception_handler,
 )
+
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
@@ -96,7 +98,9 @@ async def add_request_id_and_log(request: Request, call_next: Callable):
     else:
         duration_ms = int((time.perf_counter() - start) * 1000)
         if endpoint != "/metrics":
-            request_count.labels(endpoint=endpoint, status=str(response.status_code)).inc()
+            request_count.labels(
+                endpoint=endpoint, status=str(response.status_code)
+            ).inc()
             request_latency.labels(endpoint=endpoint).observe(duration_ms / 1000.0)
     finally:
         duration_ms = int((time.perf_counter() - start) * 1000)

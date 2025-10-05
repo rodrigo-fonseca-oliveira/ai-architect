@@ -1,4 +1,5 @@
 import os
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -7,7 +8,9 @@ client = TestClient(app)
 
 
 def test_policy_navigator_requires_role():
-    r = client.post("/policy_navigator", json={"question": "What are data retention requirements?"})
+    r = client.post(
+        "/policy_navigator", json={"question": "What are data retention requirements?"}
+    )
     assert r.status_code == 403
 
 
@@ -18,7 +21,9 @@ def test_policy_navigator_happy_path(tmp_path):
     headers = {"X-User-Role": "analyst"}
     r = client.post(
         "/policy_navigator",
-        json={"question": "Outline GDPR obligations and AI policy considerations for data minimization."},
+        json={
+            "question": "Outline GDPR obligations and AI policy considerations for data minimization."
+        },
         headers=headers,
     )
     assert r.status_code == 200
