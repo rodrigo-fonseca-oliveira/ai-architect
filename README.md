@@ -291,23 +291,29 @@ flowchart LR
 
 ## Local development and testing
 
-See docs/testing.md for a full cheat sheet. Quick commands:
+See docs/testing.md for a full cheat sheet. You can also use the Makefile for convenience.
 
 ```bash
 # Create venv and install
+make venv
+
+# Run tests
+make test
+
+# Start API
+make serve
+
+# Export OpenAPI (when endpoints/schemas change)
+make export-openapi
+```
+
+Manual commands (if you prefer):
+
+```bash
 python -m venv .venv
 . .venv/bin/activate
 pip install -e .
-
-# Run tests
-# CPU-only local install tip:
-# To avoid pulling GPU PyTorch wheels when installing locally, preinstall CPU wheels first:
-#   pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio
-# then install the project:
-#   pip install -e .
 .venv/bin/python -m pytest -q
-
-# Start API
 uvicorn app.main:app --reload
 ```
 
@@ -483,8 +489,10 @@ uvicorn app.main:app --reload
 - [x] Expand docs/testing.md with sequential curl scenarios
 
 ### Phase 9 — Ops and DX (optional)
-* Makefile targets, OpenAPI export in CI
-* Deployment recipes, Grafana dashboards packaging
+- [x] Makefile targets (venv, test, serve, lint, export-openapi)
+- [x] CONTRIBUTING.md and curl examples
+- [ ] OpenAPI export in CI (optional, manual export available via `make export-openapi`)
+- [ ] Deployment recipes, Grafana dashboards packaging
 
 ---
 
