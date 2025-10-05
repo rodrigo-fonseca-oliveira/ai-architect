@@ -16,6 +16,7 @@ from .routers.pii import router as pii_router
 from .routers.pii_remediation import router as pii_remediation_router
 from .routers.architect import router as architect_router
 from .routers.architect_ui import router as architect_ui_router
+from .routers.ui import router as unified_ui_router
 from .routers.policy import router as policy_router
 from .routers.predict import router as predict_router
 from .routers.query import router as query_router
@@ -132,3 +133,4 @@ app.include_router(policy_router)
 app.include_router(pii_remediation_router)
 app.include_router(architect_router)
 app.include_router(architect_ui_router)
+app.include_router(unified_ui_router)

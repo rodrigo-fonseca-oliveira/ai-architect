@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>AI Risk Monitor UI</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 2rem; }
+      .tabs { display: flex; gap: 1rem; margin-bottom: 1rem; }
+      .tab a { text-decoration: none; padding: .5rem .75rem; border: 1px solid #ddd; border-radius: 6px; color: #333; }
+      .tab a.active { background: #f2f2f2; }
+      .card { max-width: 1000px; padding: 1.5rem; border: 1px solid #ddd; border-radius: 8px; }
+      label { display: block; margin-top: 1rem; font-weight: 600; }
+      textarea { width: 100%; height: 120px; }
+      select, input[type="checkbox"], input[type="text"] { margin-top: .5rem; }
+      button { margin-top: 1rem; padding: .6rem 1rem; }
+      .flag { color: #666; font-size: .9rem; }
+      pre { white-space: pre-wrap; word-wrap: break-word; }
+      ul { margin-top: .25rem; }
+      form { margin-bottom: 1rem; }
+    </style>
+  </head>
+  <body>
+    <div class="tabs">
+      <div class="tab"><a href="/ui?tab=architect" class="{{ 'active' if active == 'architect' else '' }}">Architect</a></div>
+      <div class="tab"><a href="/ui?tab=query" class="{{ 'active' if active == 'query' else '' }}">Query</a></div>
+      <div class="tab"><a href="/ui?tab=research" class="{{ 'active' if active == 'research' else '' }}">Research</a></div>
+    </div>
+
+    <div class="card" id="architect" style="{{ '' if active == 'architect' else 'display:none;' }}">
+      <h2>Architect</h2>
+      {% if not project_guide_enabled %}
+        <p class="flag">Note: PROJECT_GUIDE_ENABLED is not set. /architect will 404 until set to true.</p>
+      {% endif %}
+      <form method="post" action="/ui/architect">
+        <label>Question</label>
+        <textarea name="question" placeholder="E.g., How does the router work? or Adapt this for internal policy review."></textarea>
+        <label>Mode</label>
+        <select name="mode" id="mode" onchange="toggleGrounded()">
+          <option value="guide">guide</option>
+          <option value="brainstorm">brainstorm</option>
+        </select>
+        <div id="groundedRow">
+          <label>Grounded (citations)</label>
+          <input type="checkbox" name="grounded" checked disabled />
+          <div class="flag">Guide mode forces grounded with citations.</div>
+        </div>
+        <label>Role header (X-User-Role)</label>
+        <input type="text" name="role" placeholder="analyst | admin | guest" />
+        <button type="submit">Ask</button>
+      </form>
+      {% if architect %}
+        <h3>Result</h3>
+        <pre>Status: {{ architect.status }}</pre>
+        <h4>Answer</h4>
+        <pre>{{ architect.data.answer | default('') }}</pre>
+        <h4>Citations</h4>
+        {% if architect.data.citations and architect.data.citations|length > 0 %}
+          <ul>
+            {% for c in architect.data.citations %}
+              <li><strong>{{ c.source }}</strong>: {{ c.snippet }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="flag">No citations.</div>
+        {% endif %}
+        <h4>Suggested steps</h4>
+        <ul>
+          {% for s in architect.data.suggested_steps or [] %}
+            <li>{{ s }}</li>
+          {% endfor %}
+        </ul>
+        <h4>Relevant env flags</h4>
+        <ul>
+          {% for f in architect.data.suggested_env_flags or [] %}
+            <li><code>{{ f }}</code></li>
+          {% endfor %}
+        </ul>
+        <h4>Audit</h4>
+        <pre>{{ architect.data.audit | tojson(indent=2) }}</pre>
+      {% endif %}
+    </div>
+
+    <div class="card" id="query" style="{{ '' if active == 'query' else 'display:none;' }}"> style="margin-top: 2rem;">
+      <h2>Query</h2>
+      <form method="post" action="/ui/query">
+        <label>Question</label>
+        <textarea name="question" placeholder="Ask the model a question."></textarea>
+        <label>Grounded (citations)</label>
+        <input type="checkbox" name="grounded" />
+        <div class="flag">Requires role with grounded permission (analyst/admin)</div>
+        <label>Role header (X-User-Role)</label>
+        <input type="text" name="role" placeholder="analyst | admin | guest" />
+        <button type="submit">Ask</button>
+      </form>
+      {% if query %}
+        <h3>Result</h3>
+        <pre>Status: {{ query.status }}</pre>
+        <h4>Answer</h4>
+        <pre>{{ query.data.answer | default('') }}</pre>
+        <h4>Citations</h4>
+        {% if query.data.citations and query.data.citations|length > 0 %}
+          <ul>
+            {% for c in query.data.citations %}
+              <li><strong>{{ c.source }}</strong>: {{ c.snippet }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="flag">No citations.</div>
+        {% endif %}
+        <h4>Audit</h4>
+        <pre>{{ query.data.audit | tojson(indent=2) }}</pre>
+      {% endif %}
+    </div>
+
+    <div class="card" id="research" style="{{ '' if active == 'research' else 'display:none;' }}; margin-top: 2rem;">
+      <h2>Research</h2>
+      <form method="post" action="/ui/research">
+        <label>Topic</label>
+        <textarea name="topic" placeholder="Latest updates on GDPR and AI"></textarea>
+        <label>Steps</label>
+        <select name="steps" multiple size="4">
+          {% for s in steps %}
+            <option value="{{ s }}" selected>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Role header (X-User-Role)</label>
+        <input type="text" name="role" placeholder="analyst | admin | guest" />
+        <button type="submit">Run</button>
+      </form>
+      {% if research %}
+        <h3>Result</h3>
+        <pre>Status: {{ research.status }}</pre>
+        <h4>Findings</h4>
+        {% if research.data.findings and research.data.findings|length > 0 %}
+          <ul>
+            {% for f in research.data.findings %}
+              <li><strong>{{ f.title }}</strong> — {{ f.summary }} (<a href="{{ f.url }}" target="_blank">link</a>)</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="flag">No findings.</div>
+        {% endif %}
+        <h4>Sources</h4>
+        <ul>
+          {% for s in research.data.sources or [] %}
+            <li>{{ s }}</li>
+          {% endfor %}
+        </ul>
+        <h4>Steps (audit)</h4>
+        <pre>{{ research.data.steps | tojson(indent=2) }}</pre>
+        <h4>Audit</h4>
+        <pre>{{ research.data.audit | tojson(indent=2) }}</pre>
+      {% endif %}
+    </div>
+
+    <script>
+      function toggleGrounded() {
+        const mode = document.getElementById('mode').value;
+        const row = document.getElementById('groundedRow');
+        if (mode === 'brainstorm') {
+          row.innerHTML = `
+            <label>Grounded (citations)</label>
+            <input type="checkbox" name="grounded" />
+            <div class="flag">Optional in brainstorm mode.</div>
+          `;
+        } else {
+          row.innerHTML = `
+            <label>Grounded (citations)</label>
+            <input type="checkbox" name="grounded" checked disabled />
+            <div class="flag">Guide mode forces grounded with citations.</div>
+          `;
+        }
+      }
+    </script>
+  </body>
+</html>

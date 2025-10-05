@@ -109,6 +109,11 @@ curl -X POST localhost:8000/query \
 curl localhost:8000/metrics | sed -n '1,80p'
 ```
 
+### Architect + Query + Research UI
+
+- Unified UI at http://localhost:8000/ui with tabs: Architect, Query, Research
+- Legacy Architect-only UI remains at /architect/ui
+
 ### Architect mode (Guide + Brainstorm)
 
 - Enable feature: export PROJECT_GUIDE_ENABLED=true
@@ -119,7 +124,7 @@ curl localhost:8000/metrics | sed -n '1,80p'
   - Brainstorm (citations optional):
     curl -sS -X POST localhost:8000/architect -H 'Content-Type: application/json' -d '{"question":"Adapt for internal policy review","mode":"brainstorm"}' | jq .
 - UI:
-  - Open http://localhost:8000/architect/ui
+  - Open http://localhost:8000/ui
 
 ## Repository layout
 

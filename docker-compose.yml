@@ -14,7 +14,8 @@ services:
       - REQUEST_ID_HEADER=X-Request-ID
       - EMBEDDINGS_PROVIDER=stub
       - VECTORSTORE_PATH=/data/vectorstore
-      - DOCS_PATH=/app/examples
+      - DOCS_PATH=/app/docs
+      - PROJECT_GUIDE_ENABLED=true
       - DB_URL=sqlite:////data/audit.db
       # Optional: protect /metrics with a token. If unset or empty, /metrics is open.
       # Set a strong value in production and configure Prometheus to send X-Metrics-Token header.
@@ -28,6 +29,7 @@ services:
       retries: 5
     volumes:
       - ./examples:/app/examples:ro
+      - ./docs:/app/docs:ro
       - ./data:/data
 
   prometheus:
