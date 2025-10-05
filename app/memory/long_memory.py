@@ -75,3 +75,8 @@ def ingest_fact(user_id: str, fact: str, metadata: Dict[str, Any] | None = None)
     else:
         lst.append(item)
     return True
+
+
+def clear_long_memory(user_id: str) -> None:
+    if user_id in _FACT_STORE:
+        del _FACT_STORE[user_id]

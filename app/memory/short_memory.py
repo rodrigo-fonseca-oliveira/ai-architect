@@ -13,7 +13,8 @@ MAX_TURNS = int(os.getenv("MEMORY_SHORT_MAX_TURNS", "10"))
 
 def init_short_memory(db_path: str | None = None):
     path = db_path or DB_PATH
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    dir_ = os.path.dirname(path) or "."
+    os.makedirs(dir_, exist_ok=True)
     conn = sqlite3.connect(path, check_same_thread=False)
     c = conn.cursor()
     c.execute(
@@ -113,3 +114,13 @@ def update_summary_if_needed(user_id: str, session_id: str) -> bool:
         conn.close()
         return True
     return False
+
+
+def clear_short_memory(user_id: str, session_id: str) -> None:
+    init_short_memory()
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    c = conn.cursor()
+    c.execute("DELETE FROM turns WHERE user_id=? AND session_id=?", (user_id, session_id))
+    c.execute("DELETE FROM summaries WHERE user_id=? AND session_id=?", (user_id, session_id))
+    conn.commit()
+    conn.close()

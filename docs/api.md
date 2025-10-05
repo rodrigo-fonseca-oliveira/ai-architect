@@ -62,6 +62,19 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
   - Request: { text: str }
   - Response: { label, value, rationale, audit }
 
+- GET /memory/short — list short-term memory for a session (analyst/admin)
+  - Params: user_id (required), session_id (required)
+  - Response: { turns: [{role, content, timestamp}], summary: string|null, audit: {...} }
+- DELETE /memory/short — clear short-term memory for a session (analyst/admin)
+  - Params: user_id (required), session_id (required)
+  - Response: { cleared: boolean, audit: {...} }
+- GET /memory/long — list long-term facts (analyst/admin)
+  - Params: user_id (required), q (optional)
+  - Response: { facts: [{text, score?}], audit: {...} }
+- DELETE /memory/long — clear long-term facts for user (analyst/admin)
+  - Params: user_id (required)
+  - Response: { cleared: boolean, audit: {...} }
+
   - Feature flags:
     - LC_RAG_ENABLED: optional LangChain RetrievalQA backend for grounded QA
     - ROUTER_ENABLED: routes intents (qa, pii_detect, risk_score, other) using simple rules
