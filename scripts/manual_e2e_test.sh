@@ -30,7 +30,8 @@ function wait_for_server() {
 
 function start_server() {
   echo "Starting server..."
-  (. .venv/bin/activate && uvicorn app.main:app --host 127.0.0.1 --port 8000) &
+  # Ensure env flags are inherited by the server process
+  (. .venv/bin/activate && exec env RISK_ML_ENABLED="${RISK_ML_ENABLED:-}" RISK_THRESHOLD="${RISK_THRESHOLD:-}" ROUTER_ENABLED="${ROUTER_ENABLED:-}" DOCS_PATH="${DOCS_PATH:-}" uvicorn app.main:app --host 127.0.0.1 --port 8000) &
   SVPID=$!
   echo $SVPID > "$RUN_DIR/server.pid"
   wait_for_server
@@ -56,6 +57,9 @@ cleanup() {
 trap cleanup EXIT
 
 if [[ "$START_SERVER" == "true" ]]; then
+  # Ensure ML flags are set for deterministic behavior when starting server
+  export RISK_ML_ENABLED=${RISK_ML_ENABLED:-true}
+  export RISK_THRESHOLD=${RISK_THRESHOLD:-0.6}
   start_server
 fi
 
@@ -107,7 +111,8 @@ req risk_ml "curl -sS -X POST $API_URL/risk -H 'Content-Type: application/json' 
 # Assert risk ML method when enabled
 RISK_METHOD=$(jq -r '.audit.risk_score_method // empty' "$RUN_DIR/risk_ml.out" 2>/dev/null || echo "")
 if [[ "${RISK_METHOD}" != "ml" ]]; then
-  echo "WARN: Expected risk_score_method=ml when RISK_ML_ENABLED=true, got '$RISK_METHOD'" | tee -a "$RUN_DIR/trace.log"
+  echo "FAIL: Expected risk_score_method=ml when RISK_ML_ENABLED=true, got '$RISK_METHOD'" | tee -a "$RUN_DIR/trace.log"
+  EXIT_CODE=1
 else
   echo "PASS: risk_score_method=ml under ML mode" | tee -a "$RUN_DIR/trace.log"
 fi
@@ -181,18 +186,17 @@ req rag_flags_single "curl -sS -X POST $API_URL/query -H 'Content-Type: applicat
 # 11) Observability
 req openapi "python scripts/export_openapi.py && ls -l docs/openapi.yaml"
 # Metrics delta checks
-req metrics_before_block "curl -sS $API_URL/metrics | tee \(grep '^app_requests_total{endpoint="/pii",status="200"}' -o || true\) | head -n 1"
-PII_COUNT_BEFORE=$(curl -sS $API_URL/metrics | awk -F' ' '/^app_requests_total\{endpoint="\/pii",status="200"\}/ {print $2; exit}')
-req metrics_after "curl -sS $API_URL/metrics | head -n 50"
-PII_COUNT_AFTER=$(curl -sS $API_URL/metrics | awk -F' ' '/^app_requests_total\{endpoint="\/pii",status="200"\}/ {print $2; exit}')
-if [[ -n "$PII_COUNT_BEFORE" && -n "$PII_COUNT_AFTER" ]]; then
-  if awk "BEGIN {exit !($PII_COUNT_AFTER > $PII_COUNT_BEFORE)}"; then
-    echo "PASS: /pii app_requests_total increased ($PII_COUNT_BEFORE -> $PII_COUNT_AFTER)" | tee -a "$RUN_DIR/trace.log"
+PII_COUNT_BEFORE=$(curl -sS /metrics | awk -F' ' '/^app_requests_total\{endpoint="\/pii",status="200"\}/ {print ; exit}')
+req metrics_after "curl -sS /metrics | head -n 50"
+PII_COUNT_AFTER=$(curl -sS /metrics | awk -F' ' '/^app_requests_total\{endpoint="\/pii",status="200"\}/ {print ; exit}')
+if [[ -n "" && -n "" ]]; then
+  if awk "BEGIN {exit !( > )}"; then
+    echo "PASS: /pii app_requests_total increased ( -> )" | tee -a "/trace.log"
   else
-    echo "WARN: /pii app_requests_total did not increase (before=$PII_COUNT_BEFORE, after=$PII_COUNT_AFTER)" | tee -a "$RUN_DIR/trace.log"
+    echo "WARN: /pii app_requests_total did not increase (before=, after=)" | tee -a "/trace.log"
   fi
 else
-  echo "INFO: Could not parse /pii request counter from metrics" | tee -a "$RUN_DIR/trace.log"
+  echo "INFO: Could not parse /pii request counter from metrics" | tee -a "/trace.log"
 fi
 
 # 12) Optional stress

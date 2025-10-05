@@ -13,7 +13,7 @@ Environment variables (selected):
 - EMBEDDINGS_MODEL: sentence-transformers model or OpenAI embedding model name
 - ROUTER_ENABLED: enable simple Router Agent (rules-based) to select intent (default: false)
 - PII_TYPES: comma-separated list of detectors to enable (default: email,phone,ssn,credit_card,ipv4)
-- RISK_ML_ENABLED: optional flag to use ML-based risk scorer instead of heuristics (future; default: false)
+- RISK_ML_ENABLED: flag to use the deterministic ML-like risk scorer instead of heuristics (default: false)
 - MEMORY_SHORT_ENABLED: enable short-term memory (default: false)
 - MEMORY_DB_PATH: SQLite path for short memory (default: ./data/memory_short.db)
 - MEMORY_SHORT_MAX_TURNS: max turns before summary (default: 10)

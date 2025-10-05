@@ -501,8 +501,10 @@ uvicorn app.main:app --reload
 
 - [x] Heuristic risk scorer and /risk endpoint
 - [x] Router integration adds risk_* audit fields
-- [x] Optional ML-like deterministic scorer gated by RISK_ML_ENABLED (no external deps)
-- [ ] Confidence calibration, thresholds, and RAG-based mitigations/explanations
+- [x] Optional ML-like deterministic scorer gated by RISK_ML_ENABLED (flag present; implementation to be enhanced)
+- [ ] MLflow-integrated model, registry, and serving with audit fields (see docs/mlops_plan.md)
+- [ ] Data drift (PSI) monitoring and reporting (Phase 2)
+- [ ] Model drift evaluation (labels/proxies) and gated promotion (Phase 3/4)
 
 ### Phase 7 — Memory
 

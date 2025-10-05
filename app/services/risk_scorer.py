@@ -1,8 +1,12 @@
 import os
 from typing import Dict, Tuple
 
+from app.utils.logger import get_logger
+
 # Simple heuristic risk scorer with optional ML path.
 
+
+logger = get_logger()
 
 RISK_KEYWORDS = {
     "high": [
@@ -28,6 +32,14 @@ RISK_KEYWORDS = {
         "low",
     ],
 }
+
+
+def _env_truthy(name: str, default: str = "false") -> bool:
+    """Parse boolean-like environment variables robustly."""
+    val = os.getenv(name, default)
+    if val is None:
+        return False
+    return str(val).strip().lower() in {"1", "true", "yes", "on", "y"}
 
 
 def heuristic_score(text: str) -> Dict[str, object]:
@@ -82,16 +94,40 @@ def _deterministic_ml_score(text: str, threshold: float) -> Tuple[str, float, st
 
 def score(text: str) -> Dict[str, object]:
     # If ML enabled, compute deterministic pseudo-ML score; else heuristic
-    if os.getenv("RISK_ML_ENABLED", "false").lower() in ("1", "true", "yes", "on"):
-        try:
-            threshold = float(os.getenv("RISK_THRESHOLD", "0.6"))
-        except Exception:
-            threshold = 0.6
+    ml_enabled = _env_truthy("RISK_ML_ENABLED", "false")
+    try:
+        threshold = float(os.getenv("RISK_THRESHOLD", "0.6"))
+    except Exception:
+        threshold = 0.6
+
+    if ml_enabled:
         label, value, method = _deterministic_ml_score(text, threshold)
+        logger.info(
+            "{'event': 'risk_env', 'ml_enabled': %s, 'threshold': %s}",
+            ml_enabled,
+            threshold,
+        )
+        logger.info(
+            "{'event': 'risk_score', 'method': '%s', 'threshold': %s}",
+            method,
+            threshold,
+        )
         return {
             "label": label,
             "value": value,
             "rationale": f"threshold={threshold}",
             "method": method,
         }
-    return heuristic_score(text)
+
+    # Heuristic path
+    result = heuristic_score(text)
+    logger.info(
+        "{'event': 'risk_env', 'ml_enabled': %s, 'threshold': %s}",
+        ml_enabled,
+        threshold,
+    )
+    logger.info(
+        "{'event': 'risk_score', 'method': '%s'}",
+        result.get("method", "heuristic"),
+    )
+    return result

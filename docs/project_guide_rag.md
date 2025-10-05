@@ -1,5 +1,7 @@
 # Project Guide RAG and Solution Architect Mode
 
+Note: For the MLOps roadmap (model registry, data and model drift, and serving), see docs/mlops_plan.md.
+
 Purpose
 - Turn this repo into a self-guided product tour and solution architect assistant by using its own documentation as the RAG corpus.
 - Enable:
