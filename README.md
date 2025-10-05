@@ -322,6 +322,12 @@ flowchart LR
 - Run manually:
   - pre-commit run --all-files
 
+### System dependencies
+- jq is required for the E2E script (scripts/manual_e2e_test.sh) to pretty-print and validate JSON.
+  - Ubuntu/Debian: `sudo apt-get update && sudo apt-get install -y jq`
+  - macOS (Homebrew): `brew install jq`
+  - Fedora: `sudo dnf install -y jq`
+
 See docs/testing.md for a full cheat sheet. You can also use the Makefile for convenience.
 
 ```bash

@@ -5,7 +5,10 @@ This guide walks you through a comprehensive, reproducible end-to-end (E2E) test
 Prerequisites
 - Python 3.10+
 - POSIX shell (bash)
-- curl and jq installed
+- curl and jq installed (required for the script)
+  - Ubuntu/Debian: `sudo apt-get update && sudo apt-get install -y jq`
+  - macOS (Homebrew): `brew install jq`
+  - Fedora: `sudo dnf install -y jq`
 - Optional: GNU parallel or xargs (for stress)
 
 Setup
