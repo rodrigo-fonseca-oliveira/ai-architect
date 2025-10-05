@@ -2,35 +2,19 @@ import os
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.services.rag_retriever import RAGRetriever, StubEmbeddings
 
 
 def test_rag_ingest_idempotent(tmp_path, monkeypatch):
-    # Use stub embeddings for speed and determinism
-    monkeypatch.setenv("EMBEDDINGS_PROVIDER", "stub")
-
+    # With LC-only path, ensure idempotent doc scan doesn't error and yields stable citations
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
     f = docs_dir / "a.txt"
     f.write_text("hello world")
 
-    retriever = RAGRetriever(persist_path=str(tmp_path / "vectorstore"), provider="stub")
-
-    n1 = retriever.ingest(str(docs_dir))
-    assert n1 == 1
-    count1 = retriever.collection.count()
-
-    # Re-ingest the same file; count should not increase
-    n2 = retriever.ingest(str(docs_dir))
-    assert n2 == 1
-    count2 = retriever.collection.count()
-
-    assert count2 == count1
-
-    # Modify file; count should increase
-    f.write_text("hello world!!!")
-    n3 = retriever.ingest(str(docs_dir))
-    assert n3 == 1
-    count3 = retriever.collection.count()
-
-    assert count3 == count2 + 1
+    # Point DOCS_PATH and query via LC backend to ensure stable behavior
+    monkeypatch.setenv("DOCS_PATH", str(docs_dir))
+    from app.services.langchain_rag import answer_with_citations
+    resp1 = answer_with_citations("hello", k=3)
+    resp2 = answer_with_citations("hello", k=3)
+    assert resp1.get("citations") == resp2.get("citations")
+    assert any("hello" in (c.get("snippet") or "").lower() for c in resp1.get("citations", []))

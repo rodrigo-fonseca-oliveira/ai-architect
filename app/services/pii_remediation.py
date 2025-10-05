@@ -32,20 +32,12 @@ def _snippet_for_type(t: str) -> str:
 
 def _retrieve_guidance(query: str, k: int = 2) -> List[Dict[str, Any]]:
     provider = os.getenv("EMBEDDINGS_PROVIDER", os.getenv("LLM_PROVIDER", "local"))
-    vector_path = os.getenv("VECTORSTORE_PATH", "./.local/vectorstore")
-    os.makedirs(vector_path, exist_ok=True)
-    from app.services.rag_retriever import RAGRetriever
-    retriever = RAGRetriever(persist_path=vector_path, provider=provider)
-    docs_path = os.getenv("DOCS_PATH", "./examples")
     try:
-        retriever.ensure_loaded(docs_path)
+        from app.services.langchain_rag import answer_with_citations
+        resp = answer_with_citations(query, k=k)
+        return resp.get("citations", [])
     except Exception:
-        pass
-    try:
-        found = retriever.retrieve(query, k=k)
-    except Exception:
-        found = []
-    return found
+        return []
 
 
 def synthesize_remediation(entities: List[Dict[str, Any]], include_snippets: bool, grounded: bool) -> Dict[str, Any]:

@@ -6,7 +6,7 @@ from app.main import app
 
 def test_router_pii_detect_intent(monkeypatch):
     monkeypatch.setenv("ROUTER_ENABLED", "true")
-    monkeypatch.setenv("LC_RAG_ENABLED", "false")
+    # LC flag removed; default behavior unchanged
     client = TestClient(app)
     payload = {"question": "Is an SSN considered PII?", "grounded": False}
     resp = client.post("/query", json=payload)
@@ -17,9 +17,7 @@ def test_router_pii_detect_intent(monkeypatch):
 
 def test_router_prefers_qa_for_grounded_with_flag(monkeypatch, tmp_path):
     monkeypatch.setenv("ROUTER_ENABLED", "true")
-    monkeypatch.setenv("LC_RAG_ENABLED", "true")
-    monkeypatch.setenv("EMBEDDINGS_PROVIDER", "stub")
-    monkeypatch.setenv("VECTORSTORE_PATH", str(tmp_path / ".vector"))
+    # LC default; no flags required
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
     (docs_dir / "doc.txt").write_text("Security policy requires encryption at rest.")

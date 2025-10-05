@@ -24,10 +24,7 @@ def test_pii_endpoint_detects_and_audits(monkeypatch):
 
 
 def test_pii_endpoint_optionally_returns_citations(monkeypatch, tmp_path):
-    # Enable RAG for PII
-    monkeypatch.setenv("PII_RAG_ENABLED", "true")
-    monkeypatch.setenv("EMBEDDINGS_PROVIDER", "stub")
-    monkeypatch.setenv("VECTORSTORE_PATH", str(tmp_path / ".vector"))
+    # LC default; no flags required
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
     (docs_dir / "policy.txt").write_text("PII policy: do not share personal data externally.")

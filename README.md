@@ -291,8 +291,8 @@ flowchart LR
 
 ## Retrieval backend notes
 
-- The legacy Chroma-based retrieval path (used when LC_RAG_ENABLED=false) may return no citations in certain isolated environments due to persistence edge cases. For stable behavior and future features, prefer the LangChain backend by setting LC_RAG_ENABLED=true.
-- We plan to deprecate the legacy path and consolidate on LangChain, including multi-query and hyDE improvements.
+- Retrieval now uses the LangChain-backed path by default (legacy path removed). This resolves intermittent citation issues and simplifies configuration.
+- Multi-query and hyDE improvements are planned on top of the LC path.
 
 ## Local development and testing
 
@@ -448,7 +448,7 @@ uvicorn app.main:app --reload
 
 ### Phase 4 — RAG + Router
 
-- [x] Feature-flagged LangChain RetrievalQA for grounded QA (LC_RAG_ENABLED)
+- [x] LangChain RetrievalQA (LC-only) for grounded QA
 - [x] Simple Router Agent (feature-flagged) selects intent (qa, pii_detect, risk_score, other)
 - [x] Audit enrichment: rag_backend, router_backend, router_intent; structured log event
 - [x] Tests and docs updated (flags, API fields, agents overview)
@@ -459,7 +459,7 @@ uvicorn app.main:app --reload
 
 - [x] Regex-based PII detection agent (email, phone, SSN, IPv4, credit_card + Luhn)
 - [x] Extended patterns (IPv6, IBAN, passport)
-- [x] /pii endpoint with masked previews; configurable PII_TYPES and PII_RAG_ENABLED
+- [x] /pii endpoint with masked previews; configurable PII_TYPES
 - [x] Router integration adds pii_* audit fields
 - [ ] Further pattern extensions/config (additional IDs/locales)
 

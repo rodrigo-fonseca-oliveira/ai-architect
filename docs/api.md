@@ -57,7 +57,7 @@ This service is a FastAPI application for AI risk, compliance, and observability
 Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, intent?: str }
   - Response: { answer, citations?, audit }
   - Notes: session_id enables short-term memory grouping when MEMORY_SHORT_ENABLED=true
-  - Config: LC_RAG_ENABLED (LangChain RAG), ROUTER_ENABLED (intent routing)
+  - Config: ROUTER_ENABLED (intent routing)
 - POST /risk — Risk scoring endpoint (analyst/admin)
   - Request: { text: str }
   - Response: { label, value, rationale, audit }
@@ -95,7 +95,6 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
   - memory_long_reads, memory_long_writes, memory_long_pruned
 
   - Feature flags:
-    - LC_RAG_ENABLED: optional LangChain RetrievalQA backend for grounded QA
     - ROUTER_ENABLED: routes intents (qa, pii_detect, risk_score, other) using simple rules
   - Request fields:
     - question: string (min 3)
@@ -110,7 +109,7 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
 - Intent options: qa | pii_detect | risk_score | other
 - Behavior when enabled:
   - If intent not provided or set to "auto", the router picks an intent using simple rules (see docs/agents.md).
-  - For qa + grounded=true, RAG citations are returned as before, and LC_RAG_ENABLED can switch the backend.
+  - For qa + grounded=true, RAG citations are returned via the LC-backed path (default).
 - Audit enrichment: router_backend and router_intent are included in the /query response audit field.
 - When intent=pii_detect, the answer summarizes detections and the audit includes pii_entities_count, pii_types, and pii_counts.
 

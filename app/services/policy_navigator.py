@@ -23,23 +23,13 @@ def decompose(question: str, max_subqs: int | None = None) -> List[str]:
 
 
 def retrieve(subq: str, k: int = 3) -> List[Dict[str, Any]]:
-    # reuse existing RAG retriever path (non-LangChain for determinism by default)
-    provider = os.getenv("EMBEDDINGS_PROVIDER", os.getenv("LLM_PROVIDER", "local"))
-    vector_path = os.getenv("VECTORSTORE_PATH", "./.local/vectorstore")
-    os.makedirs(vector_path, exist_ok=True)
-    from app.services.rag_retriever import RAGRetriever
-    retriever = RAGRetriever(persist_path=vector_path, provider=provider)
-    # ensure docs available
-    docs_path = os.getenv("DOCS_PATH", "./examples")
+    # Use LC-backed retrieval wrapper
     try:
-        retriever.ensure_loaded(docs_path)
+        from app.services.langchain_rag import answer_with_citations
+        resp = answer_with_citations(subq, k=k)
+        return resp.get("citations", [])
     except Exception:
-        pass
-    try:
-        found = retriever.retrieve(subq, k=k)
-    except Exception:
-        found = []
-    return found
+        return []
 
 
 def synthesize(question: str, subqs: List[str], per_subq_citations: List[List[Dict[str, Any]]]) -> Dict[str, Any]:

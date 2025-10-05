@@ -9,13 +9,12 @@ from pydantic import BaseModel, Field
 from ..utils.audit import make_hash, write_audit
 from ..utils.cost import estimate_tokens_and_cost
 from db.session import get_session
-from ..services.rag_retriever import RAGRetriever
+# legacy RAGRetriever removed; using LangChain-only path
 from app.utils.rbac import parse_role, is_allowed_grounded_query
 
 router = APIRouter()
 
-# Lazy init retriever
-_retriever: RAGRetriever | None = None
+
 
 
 # Schemas kept local for Phase 0 simplicity
@@ -83,14 +82,9 @@ def post_query(req: Request, payload: QueryRequest):
     # RBAC grounded policy
     role = parse_role(req)
 
-    # Initialize retriever if needed and get citations if grounded
+    # Initialize citations and backend marker
     citations: List[Citation] = []
-    rag_backend = "legacy"
-    # ensure rag_backend is present in response audit for legacy path
-    try:
-        audit_dict["rag_backend"] = rag_backend
-    except Exception:
-        pass
+    rag_backend = "langchain"
 
     # Optional router (feature-flagged)
     intent = (payload.intent or "auto").lower()
@@ -125,44 +119,14 @@ def post_query(req: Request, payload: QueryRequest):
     elif intent == "qa" and payload.grounded:
         if not is_allowed_grounded_query(role):
             raise HTTPException(status_code=403, detail="grounded query not allowed for this role")
-        # Feature flag for LangChain RetrievalQA path
-        lc_enabled = os.getenv("LC_RAG_ENABLED", "false").lower() in ("1", "true", "yes", "on")
-        if lc_enabled:
-            rag_backend = "langchain"
-            try:
-                from app.services.langchain_rag import answer_with_citations
+        # LangChain-only RetrievalQA path
+        try:
+            from app.services.langchain_rag import answer_with_citations
 
-                result = answer_with_citations(payload.question, k=3)
-                citations = [Citation(**c) for c in result.get("citations", [])]
-            except Exception:
-                citations = []
-        else:
-            # Always create retriever from current env to avoid stale path/provider
-            provider = os.getenv("EMBEDDINGS_PROVIDER", os.getenv("LLM_PROVIDER", "local"))
-            vector_path = os.getenv("VECTORSTORE_PATH", "./.local/vectorstore")
-            os.makedirs(vector_path, exist_ok=True)
-            retriever = __import__("app.services.rag_retriever", fromlist=["RAGRetriever"]).RAGRetriever(
-                persist_path=vector_path, provider=provider
-            )
-            try:
-                # Ensure collection has content for the given DOCS_PATH
-                docs_path = os.getenv("DOCS_PATH", "./examples")
-                retriever.ensure_loaded(docs_path)
-                # Set rag backend explicitly for legacy path in response audit
-                audit_dict["rag_backend"] = "legacy"
-                # Multi-query retrieval when enabled
-                if os.getenv("RAG_MULTI_QUERY_ENABLED", "false").lower() in ("1", "true", "yes", "on"):
-                    n = int(os.getenv("RAG_MULTI_QUERY_COUNT", "3"))
-                    hyde = os.getenv("RAG_HYDE_ENABLED", "false").lower() in ("1", "true", "yes", "on")
-                    found = retriever.retrieve_multi(payload.question, k=3, n=n, hyde=hyde)
-                    audit_dict["rag_multi_query"] = True
-                    audit_dict["rag_multi_count"] = n
-                    audit_dict["rag_hyde"] = hyde
-                else:
-                    found = retriever.retrieve(payload.question, k=3)
-                citations = [Citation(**c) for c in found]
-            except Exception:
-                citations = []
+            result = answer_with_citations(payload.question, k=3)
+            citations = [Citation(**c) for c in result.get("citations", [])]
+        except Exception:
+            citations = []
 
     # Stub answer baseline; branches may override earlier (e.g., pii_detect)
     if 'answer' not in locals():
@@ -337,16 +301,9 @@ def post_query(req: Request, payload: QueryRequest):
     audit_dict = audit.model_dump()
     # build response audit dict filtered by flags for correct field presence
     response_audit = audit_dict.copy()
-    # propagate rag_backend into response audit if set in local var
+    # ensure rag_backend present
     try:
-        if rag_backend and 'rag_backend' not in response_audit:
-            response_audit['rag_backend'] = rag_backend
-    except Exception:
-        pass
-    # ensure rag_backend present when using legacy path
-    try:
-        if isinstance(rag_backend, str):
-            response_audit['rag_backend'] = rag_backend
+        response_audit['rag_backend'] = rag_backend
     except Exception:
         pass
     if not short_enabled:

@@ -2,7 +2,7 @@ import os
 import hashlib
 from typing import List, Dict, Any
 
-from app.services.rag_retriever import LocalEmbeddings, OpenAIEmbeddings, StubEmbeddings
+# Legacy embeddings removed; using simple cosine over in-process store
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)

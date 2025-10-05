@@ -50,18 +50,11 @@ def post_pii(req: Request, payload: PiiRequest):
 
     # Optional RAG citations for policy references
     citations = []
-    if payload.grounded and os.getenv("PII_RAG_ENABLED", "false").lower() in ("1", "true", "yes", "on"):
+    if payload.grounded:
         try:
-            provider = os.getenv("EMBEDDINGS_PROVIDER", os.getenv("LLM_PROVIDER", "local"))
-            vector_path = os.getenv("VECTORSTORE_PATH", "./.local/vectorstore")
-            os.makedirs(vector_path, exist_ok=True)
-            from app.services.rag_retriever import RAGRetriever
-
-            retriever = RAGRetriever(persist_path=vector_path, provider=provider)
-            docs_path = os.getenv("DOCS_PATH", "./examples")
-            retriever.ensure_loaded(docs_path)
-            found = retriever.retrieve("PII policy references", k=3)
-            citations = found
+            from app.services.langchain_rag import answer_with_citations
+            resp = answer_with_citations("PII policy references", k=3)
+            citations = resp.get("citations", [])
         except Exception:
             citations = []
 
