@@ -406,42 +406,43 @@ uvicorn app.main:app --reload
 
 ## Roadmap
 
-### Phase 0 — Bootstrap (Day 1)
+### Phase 0 — Bootstrap
 
-* [x] FastAPI app skeleton + `/healthz`
-* [x] JSON logger with `request_id`
-* [x] SQLite DB + `audit` table (persist audit rows)
-* [x] `/query` using a **stub LLM** (no external calls)
-* [x] Token/cost estimator (mock) + `/metrics`
-* [x] Basic tests (routers + audit write)
-* [x] CI: ruff + pytest
+- [x] FastAPI app skeleton + /healthz
+- [x] JSON logger with request_id
+- [x] SQLite DB + audit table (persist audit rows)
+- [x] /query using a stub LLM (no external calls)
+- [x] Token/cost estimator (mock) + /metrics
+- [x] Basic tests (routers + audit write)
+- [x] CI: ruff + pytest
 
-### Phase 1 — Core Value (Day 2)
+### Phase 1 — Core Value
 
-* [x] RAG: ingest local docs with Chroma (scripts/ingest_docs.py)
-* [x] `/query` returns **citations** (snippet + source) when `grounded=true`
-* [x] Denylist check + `compliance_flag` (env-based)
-* [x] Retention sweeper (delete audit rows older than `LOG_RETENTION_DAYS`)
-* [x] README architecture diagram + screenshots (CI, logs, MLflow UI)
+- [x] RAG: ingest local docs with Chroma (scripts/ingest_docs.py)
+- [x] /query returns citations when grounded=true
+- [x] Denylist check + compliance_flag (env-based)
+- [x] Retention sweeper (delete audit rows older than LOG_RETENTION_DAYS)
+- [x] README architecture diagram + screenshots
 
-### Phase 2 — Agent & MLflow (Stretch)
+### Phase 2 — Agent & MLflow
 
-* [x] `/research`: search → fetch → summarize → risk_check
-* [x] Agent **step audit** (tool name, args, latency, hash)
-* [x] ML: `ml/train.py` → MLflow (local) logs params/metrics/artifacts
-* [x] `/predict` loads latest model from MLflow local store
-* [x] `ml/drift.py` (PSI) + “retrain recommended” flag
-* [x] CI runs tiny `train.py` and `drift.py` on PR
+- [x] /research: search → fetch → summarize → risk_check
+- [x] Agent step audit (tool name, args, latency, hash)
+- [x] ML: ml/train.py → MLflow (local) logs params/metrics/artifacts
+- [x] /predict loads latest model from MLflow local store
+- [x] ml/drift.py (PSI) + “retrain recommended” flag
+- [x] CI runs tiny train.py and drift.py on PR
 
-### Phase 3 — Polish & Wow
+### Phase 3 — Polish
 
-* [x] Role-based access checks (admin/analyst/guest)
-* [x] Prompt registry (`prompts/*.yaml`) + loader
-* [x] Grafana dashboard (pre-provisioned via docker-compose)
-* [x] Dockerized one-click deploy (Render)
-* [x] Data Card & Model Card in `docs/`
+- [x] Role-based access checks (admin/analyst/guest)
+- [x] Prompt registry (prompts/*.yaml) + loader
+- [x] Grafana dashboard (pre-provisioned via docker-compose)
+- [x] Dockerized one-click deploy (Render)
+- [x] Data Card & Model Card in docs/
 
-### Phase 4 — LangChain RAG + Router Agent
+### Phase 4 — RAG + Router
+
 - [x] Feature-flagged LangChain RetrievalQA for grounded QA (LC_RAG_ENABLED)
 - [x] Simple Router Agent (feature-flagged) selects intent (qa, pii_detect, risk_score, other)
 - [x] Audit enrichment: rag_backend, router_backend, router_intent; structured log event
@@ -449,31 +450,23 @@ uvicorn app.main:app --reload
 - [ ] Extend router rules/config and add richer backends (future)
 - [ ] Router Agent UI/docs examples (optional)
 
-### Phase 5 — PII Detection Agent
+### Phase 5 — PII Detection
+
 - [x] Regex-based PII detection agent (email, phone, SSN, IPv4, credit_card + Luhn)
 - [x] Extended patterns (IPv6, IBAN, passport)
 - [x] /pii endpoint with masked previews; configurable PII_TYPES and PII_RAG_ENABLED
 - [x] Router integration adds pii_* audit fields
+- [ ] Further pattern extensions/config (additional IDs/locales)
 
-### Phase 6 — Risk Scoring Agent
+### Phase 6 — Risk Scoring
+
 - [x] Heuristic risk scorer and /risk endpoint
 - [x] Router integration adds risk_* audit fields
-
-
-### Phase 5 — PII Detection Agent
-- [x] Initial PII detector (regex/heuristics) with masked previews and router integration
-- [x] Tests and docs for pii_detect intent and audit fields
-- [ ] Extend patterns (IBAN, IPv6, passport IDs); configurable types
-- [ ] Optional dedicated /pii endpoint and UI examples
-- [ ] Compose with RAG policy citations (cross-intent) in future
-
-### Phase 6 — Risk Scoring Agent
-- [x] Initial heuristic scorer and POST /risk endpoint (analyst/admin)
-- [x] Router integration: risk_score intent enriches audit and sets concise answer
 - [ ] Optional ML scorer (scikit-learn) gated by RISK_ML_ENABLED
 - [ ] Confidence calibration, thresholds, and RAG-based mitigations/explanations
 
-### Phase 7 — Memory (short-term and long-term)
+### Phase 7 — Memory
+
 - [x] Short-term conversation memory (buffer + rolling summary) per session_id
 - [x] Long-term in-process semantic memory (user facts) with retrieval and ingestion
 - [x] /query integration: optional session_id, reads/writes, rolling summary after max turns
@@ -482,17 +475,22 @@ uvicorn app.main:app --reload
 - [x] Export/Import long memory; enriched export fields
 - [x] Docs and tests for memory and retention
 
-### Phase 8 — Agentic workflows and polish
+### Phase 8 — Agents & RAG Enhancements
+
 - [x] Policy Navigator Agent (decompose → retrieve → synthesize → recommend)
 - [x] PII Remediation Agent (detect → retrieve policy → propose redactions + code snippets)
-- [x] Retrieval improvements (multi-query/hyDE), optional summarizer agent
+- [x] Retrieval improvements (multi-query/hyDE)
 - [x] Expand docs/testing.md with sequential curl scenarios
+- [ ] Extend multi-query/hyDE to LangChain path
+- [ ] Router integration for new agents (auto intent)
 
-### Phase 9 — Ops and DX (optional)
+### Phase 9 — Ops & DX
+
 - [x] Makefile targets (venv, test, serve, lint, export-openapi)
 - [x] CONTRIBUTING.md and curl examples
-- [ ] OpenAPI export in CI (optional, manual export available via `make export-openapi`)
+- [ ] OpenAPI export in CI (manual export available via make export-openapi)
 - [ ] Deployment recipes, Grafana dashboards packaging
+- [ ] Pre-commit hooks and/or VS Code tasks
 
 ---
 
