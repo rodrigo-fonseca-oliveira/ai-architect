@@ -91,6 +91,9 @@ req pii_basic "curl -sS -X POST $API_URL/pii -H 'Content-Type: application/json'
 req pii_ssn "curl -sS -X POST $API_URL/pii -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"text\":\"SSN 123-45-6789 and email john.doe@example.com\",\"include_citations\": false}' | jq ."
 req pii_cc "curl -sS -X POST $API_URL/pii -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"text\":\"My Visa is 4111 1111 1111 1111 exp 10/30\",\"include_citations\": false}' | jq ."
 req pii_with_citations "curl -sS -X POST $API_URL/pii -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"text\":\"Call me at (212) 555-0100 or email me@example.com\",\"include_citations\": true}' | jq ."
+# Assert PII include_citations contains entities and counts
+PII_TYPES=$(jq -r '.types_present | join(",")' "$RUN_DIR/pii_with_citations.out" 2>/dev/null || echo "")
+if [[ -z "$PII_TYPES" ]]; then echo "FAIL: PII include_citations case missing types_present" | tee -a "$RUN_DIR/trace.log"; exit 1; else echo "PASS: PII include_citations returned types [$PII_TYPES]" | tee -a "$RUN_DIR/trace.log"; fi
 # RBAC negative case (expect 403)
 set +e
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST $API_URL/pii -H 'Content-Type: application/json' -d '{"text":"no role header should 403"}')
@@ -101,6 +104,13 @@ if [[ "$HTTP_CODE" != "403" ]]; then echo "FAIL: /pii without role should be 403
 req risk_heuristic "curl -sS -X POST $API_URL/risk -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"text\":\"Critical breach and violation, potential lawsuit\"}' | jq ."
 export RISK_ML_ENABLED=true; export RISK_THRESHOLD=0.6
 req risk_ml "curl -sS -X POST $API_URL/risk -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"text\":\"Critical incident with severe impact and vulnerability exposed.\"}' | jq ."
+# Assert risk ML method when enabled
+RISK_METHOD=$(jq -r '.audit.risk_score_method // empty' "$RUN_DIR/risk_ml.out" 2>/dev/null || echo "")
+if [[ "${RISK_METHOD}" != "ml" ]]; then
+  echo "WARN: Expected risk_score_method=ml when RISK_ML_ENABLED=true, got '$RISK_METHOD'" | tee -a "$RUN_DIR/trace.log"
+else
+  echo "PASS: risk_score_method=ml under ML mode" | tee -a "$RUN_DIR/trace.log"
+fi
 # Edge near threshold
 export RISK_THRESHOLD=0.5
 req risk_edge "curl -sS -X POST $API_URL/risk -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"text\":\"moderate issue, possible concern\"}' | jq ."
@@ -154,17 +164,36 @@ req research "curl -sS -X POST $API_URL/research -H 'Content-Type: application/j
 
 # 10) RAG flags variants
 export RAG_MULTI_QUERY_ENABLED=true; export RAG_MULTI_QUERY_COUNT=4; export RAG_HYDE_ENABLED=true
+# Top-k = 1
+export RAG_TOP_K=1
 req rag_flags "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"question\":\"What is data retention?\",\"grounded\": true}' | jq ."
-# Variant: disable hyDE
-export RAG_HYDE_ENABLED=false
+CIT_COUNT_K1=$(jq '.citations | length' "$RUN_DIR/rag_flags.out" 2>/dev/null || echo 0)
+if [[ ${CIT_COUNT_K1:-0} -lt 1 || ${CIT_COUNT_K1:-0} -gt 1 ]]; then echo "WARN: citations count $CIT_COUNT_K1 not within expected bounds for top_k=1" | tee -a "$RUN_DIR/trace.log"; else echo "PASS: citations count within bounds for top_k=1 ($CIT_COUNT_K1)" | tee -a "$RUN_DIR/trace.log"; fi
+# Variant: disable hyDE, top-k = 3
+export RAG_HYDE_ENABLED=false; export RAG_TOP_K=3
 req rag_flags_no_hyde "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"question\":\"What is data retention?\",\"grounded\": true}' | jq ."
+CIT_COUNT_K3=$(jq '.citations | length' "$RUN_DIR/rag_flags_no_hyde.out" 2>/dev/null || echo 0)
+if [[ ${CIT_COUNT_K3:-0} -lt 1 || ${CIT_COUNT_K3:-0} -gt 3 ]]; then echo "WARN: citations count $CIT_COUNT_K3 not within expected bounds for top_k=3" | tee -a "$RUN_DIR/trace.log"; else echo "PASS: citations count within bounds for top_k=3 ($CIT_COUNT_K3)" | tee -a "$RUN_DIR/trace.log"; fi
 # Variant: single-query
 export RAG_MULTI_QUERY_ENABLED=false
 req rag_flags_single "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"question\":\"What is data protection?\",\"grounded\": true}' | jq ."
 
 # 11) Observability
 req openapi "python scripts/export_openapi.py && ls -l docs/openapi.yaml"
+# Metrics delta checks
+req metrics_before_block "curl -sS $API_URL/metrics | tee \(grep '^app_requests_total{endpoint="/pii",status="200"}' -o || true\) | head -n 1"
+PII_COUNT_BEFORE=$(curl -sS $API_URL/metrics | awk -F' ' '/^app_requests_total\{endpoint="\/pii",status="200"\}/ {print $2; exit}')
 req metrics_after "curl -sS $API_URL/metrics | head -n 50"
+PII_COUNT_AFTER=$(curl -sS $API_URL/metrics | awk -F' ' '/^app_requests_total\{endpoint="\/pii",status="200"\}/ {print $2; exit}')
+if [[ -n "$PII_COUNT_BEFORE" && -n "$PII_COUNT_AFTER" ]]; then
+  if awk "BEGIN {exit !($PII_COUNT_AFTER > $PII_COUNT_BEFORE)}"; then
+    echo "PASS: /pii app_requests_total increased ($PII_COUNT_BEFORE -> $PII_COUNT_AFTER)" | tee -a "$RUN_DIR/trace.log"
+  else
+    echo "WARN: /pii app_requests_total did not increase (before=$PII_COUNT_BEFORE, after=$PII_COUNT_AFTER)" | tee -a "$RUN_DIR/trace.log"
+  fi
+else
+  echo "INFO: Could not parse /pii request counter from metrics" | tee -a "$RUN_DIR/trace.log"
+fi
 
 # 12) Optional stress
 if [[ "$STRESS" -gt 0 ]]; then

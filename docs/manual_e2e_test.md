@@ -45,8 +45,8 @@ Test flow overview (ordered)
 13. Optional stress tests
 
 Validation methodology
-- Each step includes: commands to run, what to expect, what to check in outputs.
-- Save outputs in ./e2e_logs/<timestamp> (the script does this automatically).
+- Each step includes: commands to run, what to expect, what to check in outputs. The script performs basic assertions (grounded citations non-empty, PII RBAC 403 check, conditional memory clear semantics).
+- Save outputs in ./e2e_logs/<timestamp> (the script does this automatically). Each run folder contains trace.log and per-step .out files.
 
 ---
 
