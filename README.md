@@ -278,6 +278,19 @@ flowchart LR
 
 ## Security and governance
 
+### PII configuration
+- Environment variables:
+  - PII_TYPES: comma-separated base types to detect (default: email,phone,ssn,credit_card,ipv4). Additional types available: ipv6, iban, passport.
+  - PII_LOCALES: comma-separated locales to enable locale-specific patterns (e.g., US,UK,CA,DE).
+- Example:
+  - export PII_TYPES="email,phone,ssn,credit_card,ipv4"
+  - export PII_LOCALES="US,UK,CA"
+- Try it:
+  - curl -X POST localhost:8000/pii -H "Content-Type: application/json" -H "X-User-Role: analyst" -d '{"text":"Contact bob@example.com, UK NI AB123456C, ZIP 12345-6789"}'
+- Notes:
+  - Some locale patterns are simplified for demonstration and may produce false positives.
+  - Masking reveals only head/tail of detected values; use PII endpoint for previews and audit aggregation.
+
 * **No secrets** in code; use `.env.example`
 * **RBAC**: roles (`admin`, `analyst`, `guest`) enforced via `X-User-Role` header
   - /metrics: open by default. To protect, set METRICS_TOKEN and have your scraper send header `X-Metrics-Token: $METRICS_TOKEN`.
