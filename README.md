@@ -452,8 +452,28 @@ uvicorn app.main:app --reload
 - [x] Simple Router Agent (feature-flagged) selects intent (qa, pii_detect, risk_score, other)
 - [x] Audit enrichment: rag_backend, router_backend, router_intent; structured log event
 - [x] Tests and docs updated (flags, API fields, agents overview)
-- [ ] Extend router rules/config and add richer backends (future)
+- [x] Extend router rules/config and add richer backends (rules backend v2 with JSON-config)
 - [ ] Router Agent UI/docs examples (optional)
+
+#### Router configuration
+- Enable router:
+  - export ROUTER_ENABLED=true
+- Backend selection (default: rules):
+  - export ROUTER_BACKEND=rules
+- Provide rules inline (JSON):
+  - export ROUTER_RULES_JSON='{"rules":[{"intent":"pii_detect","keywords_any":["ssn","pii"],"priority":100},{"intent":"qa","keywords_any":["policy"],"priority":10}],"default_intent":"qa"}'
+- Or load from a file:
+  - echo '{"rules":[{"intent":"risk_score","keywords_any":["risk","severity"],"priority":50}],"default_intent":"qa"}' > router_rules.json
+  - export ROUTER_RULES_PATH=$PWD/router_rules.json
+- Behavior:
+  - Priority decides which rule wins when multiple match.
+  - If no rules are configured or no rule matches, builtin heuristics apply (e.g., email/ssn/credit card → pii_detect; risk/severity → risk_score).
+  - If grounded=true, the router returns qa and RBAC still applies for grounded queries.
+- Try it:
+  - curl -X POST localhost:8000/query -H 'Content-Type: application/json' -d '{"question":"Email is bob@example.com","grounded": false}'
+  - Expected: audit.router_intent == "pii_detect"
+
+See docs/router_rules.md for detailed examples.
 
 ### Phase 5 — PII Detection
 
