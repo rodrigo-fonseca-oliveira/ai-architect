@@ -70,10 +70,17 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
   - Response: { cleared: boolean, audit: {...} }
 - GET /memory/long — list long-term facts (analyst/admin)
   - Params: user_id (required), q (optional)
-  - Response: { facts: [{text, score?}], audit: {...} }
+  - Response: { facts: [{text, created_at?, metadata?}], audit: {..., memory_long_reads?, memory_long_pruned?} }
 - DELETE /memory/long — clear long-term facts for user (analyst/admin)
   - Params: user_id (required)
   - Response: { cleared: boolean, audit: {...} }
+- GET /memory/long/export — export long-term facts (analyst/admin)
+  - Params: user_id (required)
+  - Response: { facts: [{id, text, created_at, metadata, embedding_present, embedding_dim}], audit: {..., memory_long_reads?, memory_long_pruned?} }
+- POST /memory/long/import — import long-term facts (analyst/admin)
+  - Params: user_id (required)
+  - Body: { facts: [{ text: string, metadata?: object }] }
+  - Response: { imported: number, audit: {..., memory_long_writes?, memory_long_pruned?} }
 
   - Feature flags:
     - LC_RAG_ENABLED: optional LangChain RetrievalQA backend for grounded QA

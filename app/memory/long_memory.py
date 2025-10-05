@@ -11,6 +11,8 @@ PREFIX = os.getenv("MEMORY_COLLECTION_PREFIX", "memory")
 
 # Fallback in-memory store to avoid external dependency in tests/CI
 _FACT_STORE: dict[str, list[dict[str, Any]]] = {}
+MEMORY_LONG_MAX_FACTS = int(os.getenv("MEMORY_LONG_MAX_FACTS", "0"))
+MEMORY_LONG_RETENTION_DAYS = int(os.getenv("MEMORY_LONG_RETENTION_DAYS", "0"))
 
 
 def _get_embedder():
@@ -26,11 +28,22 @@ def retrieve_facts(user_id: str, query: str, top_k: int = 5) -> List[Dict[str, A
     # naive similarity via cosine on local embeddings if available
     facts = _FACT_STORE.get(user_id, [])
     if not facts:
+        retrieve_facts._last_pruned = 0  # type: ignore[attr-defined]
         return []
+    # prune by retention days if configured
+    pruned = 0
+    if MEMORY_LONG_RETENTION_DAYS and MEMORY_LONG_RETENTION_DAYS > 0:
+        import time
+        cutoff = time.time() - (MEMORY_LONG_RETENTION_DAYS * 86400)
+        before = len(facts)
+        facts = [f for f in facts if f.get("created_at", 0) >= cutoff]
+        pruned += before - len(facts)
+        _FACT_STORE[user_id] = facts
     emb = _get_embedder()
     try:
         qvec = emb.embed([query])[0]
     except Exception:
+        retrieve_facts._last_pruned = pruned  # type: ignore[attr-defined]
         # If embeddings fail, just return recent facts
         return facts[:top_k]
 
@@ -52,6 +65,7 @@ def retrieve_facts(user_id: str, query: str, top_k: int = 5) -> List[Dict[str, A
         score = cos(qvec, vec) if vec else 0.0
         scored.append((score, f))
     scored.sort(key=lambda x: x[0], reverse=True)
+    retrieve_facts._last_pruned = pruned  # type: ignore[attr-defined]
     return [f for _, f in scored[:top_k]]
 
 
@@ -69,11 +83,30 @@ def ingest_fact(user_id: str, fact: str, metadata: Dict[str, Any] | None = None)
         if f.get("id") == _id:
             exists = i
             break
-    item = {"id": _id, "text": fact, "metadata": metadata or {}, "embedding": vec}
+    import time
+    item = {"id": _id, "text": fact, "metadata": metadata or {}, "embedding": vec, "created_at": time.time()}
     if exists is not None:
         lst[exists] = item
     else:
         lst.append(item)
+    # enforce max facts per user if configured
+    if MEMORY_LONG_MAX_FACTS and MEMORY_LONG_MAX_FACTS > 0 and len(lst) > MEMORY_LONG_MAX_FACTS:
+        # evict oldest by created_at
+        before = len(lst)
+        lst.sort(key=lambda f: f.get("created_at", 0), reverse=False)
+        while len(lst) > MEMORY_LONG_MAX_FACTS:
+            lst.pop(0)
+        evicted = before - len(lst)
+        try:
+            ingest_fact._last_evicted = int(evicted)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+        _FACT_STORE[user_id] = lst
+    else:
+        try:
+            ingest_fact._last_evicted = 0  # type: ignore[attr-defined]
+        except Exception:
+            pass
     return True
 
 
