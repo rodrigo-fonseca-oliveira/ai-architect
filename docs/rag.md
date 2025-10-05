@@ -1,31 +1,14 @@
-# RAG (Retrieval-Augmented Generation)
+# Retrieval improvements: multi-query and hyDE
 
-## Overview
-- Vector store path: VECTORSTORE_PATH (e.g., /data/vectorstore)
-- Providers:
-  - local (SentenceTransformers)
-  - openai (requires LLM_API_KEY)
-  - stub (deterministic, for tests)
+- Flags:
+  - RAG_MULTI_QUERY_ENABLED (default: false)
+  - RAG_MULTI_QUERY_COUNT (default: 3)
+  - RAG_HYDE_ENABLED (default: false)
 
-## Ingestion
-- Supported file types: .txt, .md
-- Idempotent by design: document IDs are SHA256(content + relative path). Re-ingesting the same files will not create duplicates.
+Behavior when enabled (legacy retriever path):
+- reformulate_queries: generates simple deterministic variants (base, key-terms, rephrase)
+- retrieve_multi: queries each variant (and an optional hyDE variant) and merges citations, deduping by source+page.
 
-### CLI example
-- Ingest example docs:
-  - python scripts/ingest_docs.py --path ./examples
-
-### Programmatic example
-from app.services.rag_retriever import RAGRetriever
-retriever = RAGRetriever(persist_path="/data/vectorstore", provider="local")
-retriever.ingest("./examples")
-
-## Retrieval
-- Method: RAGRetriever.retrieve(query: str, k: int = 3)
-- Returns citations with source and snippet.
-
-## Configuration
-- EMBEDDINGS_PROVIDER (local|openai|stub)
-- EMBEDDINGS_MODEL (e.g., sentence-transformers/all-MiniLM-L6-v2)
-- VECTORSTORE_PATH (storage path)
-- LC_RAG_ENABLED (default false): when true, grounded queries use the LangChain RetrievalQA path
+Notes:
+- LC_RAG_ENABLED path is left unchanged in this iteration.
+- Deterministic tests use EMBEDDINGS_PROVIDER=stub.

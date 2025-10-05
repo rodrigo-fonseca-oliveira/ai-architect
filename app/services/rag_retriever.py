@@ -61,6 +61,49 @@ class RAGRetriever:
         else:
             self.emb = LocalEmbeddings(model_name=os.getenv("EMBEDDINGS_MODEL", model))
 
+    @staticmethod
+    def reformulate_queries(question: str, n: int) -> list[str]:
+        base = question.strip()
+        variants = [base]
+        if n <= 1:
+            return variants
+        variants.append(f"Key terms: {base}")
+        if n > 2:
+            variants.append(f"Rephrase: {base}")
+        return variants[:n]
+
+    @staticmethod
+    def merge_citations(citation_lists: list[list[dict]], k: int) -> list[dict]:
+        seen = set()
+        merged = []
+        for lst in citation_lists:
+            for c in lst:
+                key = (c.get("source"), c.get("page"))
+                if key in seen:
+                    continue
+                seen.add(key)
+                merged.append(c)
+                if len(merged) >= k:
+                    return merged
+        return merged
+
+    @staticmethod
+    def hyde_snippet(question: str) -> str:
+        return f"Hypothetical answer summary: This question likely pertains to policy and compliance for: {question[:80]}..."
+
+    def retrieve_multi(self, question: str, k: int = 3, n: int = 3, hyde: bool = False) -> list[dict]:
+        queries = self.reformulate_queries(question, n)
+        if hyde:
+            snippet = self.hyde_snippet(question)
+            queries.append(f"{snippet}\n\n{question}")
+        results: list[list[dict]] = []
+        for q in queries:
+            try:
+                results.append(self.retrieve(q, k=k))
+            except Exception:
+                results.append([])
+        return self.merge_citations(results, k)
+
     def ingest(self, docs_path: str):
         # Simple ingestion: read .txt and .md files with idempotency by content hash
         docs = []

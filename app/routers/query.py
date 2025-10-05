@@ -86,6 +86,11 @@ def post_query(req: Request, payload: QueryRequest):
     # Initialize retriever if needed and get citations if grounded
     citations: List[Citation] = []
     rag_backend = "legacy"
+    # ensure rag_backend is present in response audit for legacy path
+    try:
+        audit_dict["rag_backend"] = rag_backend
+    except Exception:
+        pass
 
     # Optional router (feature-flagged)
     intent = (payload.intent or "auto").lower()
@@ -143,7 +148,16 @@ def post_query(req: Request, payload: QueryRequest):
                 # Ensure collection has content for the given DOCS_PATH
                 docs_path = os.getenv("DOCS_PATH", "./examples")
                 retriever.ensure_loaded(docs_path)
-                found = retriever.retrieve(payload.question, k=3)
+                # Multi-query retrieval when enabled
+                if os.getenv("RAG_MULTI_QUERY_ENABLED", "false").lower() in ("1", "true", "yes", "on"):
+                    n = int(os.getenv("RAG_MULTI_QUERY_COUNT", "3"))
+                    hyde = os.getenv("RAG_HYDE_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+                    found = retriever.retrieve_multi(payload.question, k=3, n=n, hyde=hyde)
+                    audit_dict["rag_multi_query"] = True
+                    audit_dict["rag_multi_count"] = n
+                    audit_dict["rag_hyde"] = hyde
+                else:
+                    found = retriever.retrieve(payload.question, k=3)
                 citations = [Citation(**c) for c in found]
             except Exception:
                 citations = []
@@ -321,6 +335,15 @@ def post_query(req: Request, payload: QueryRequest):
     audit_dict = audit.model_dump()
     # build response audit dict filtered by flags for correct field presence
     response_audit = audit_dict.copy()
+    # propagate rag_backend into response audit if set in local var
+    try:
+        if rag_backend and 'rag_backend' not in response_audit:
+            response_audit['rag_backend'] = rag_backend
+    except Exception:
+        pass
+    # ensure rag_backend present when using legacy path
+    if 'rag_backend' not in response_audit:
+        response_audit['rag_backend'] = rag_backend
     if not short_enabled:
         for k in ("memory_short_reads", "memory_short_writes", "summary_updated", "memory_short_pruned"):
             response_audit.pop(k, None)
