@@ -81,6 +81,12 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
   - Params: user_id (required)
   - Body: { facts: [{ text: string, metadata?: object }] }
   - Response: { imported: number, audit: {..., memory_long_writes?, memory_long_pruned?} }
+- GET /memory/status — memory status (admin only)
+  - Response: { config: {...}, short_memory: { sessions: [{user_id, session_id, turns, summary}], db_ok }, long_memory: { users: [{user_id, facts}], store_ok }, counters: { memory_short_pruned_total, memory_long_pruned_total }, audit: {...} }
+
+- /query audit includes memory counters when flags enabled:
+  - memory_short_reads, memory_short_writes, summary_updated, memory_short_pruned
+  - memory_long_reads, memory_long_writes, memory_long_pruned
 
   - Feature flags:
     - LC_RAG_ENABLED: optional LangChain RetrievalQA backend for grounded QA

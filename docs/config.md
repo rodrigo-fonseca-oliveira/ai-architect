@@ -19,8 +19,12 @@ Environment variables (selected):
 - MEMORY_SHORT_ENABLED: enable short-term memory (default: false)
 - MEMORY_DB_PATH: SQLite path for short memory (default: ./data/memory_short.db)
 - MEMORY_SHORT_MAX_TURNS: max turns before summary (default: 10)
+- SHORT_MEMORY_RETENTION_DAYS: prune short-term turns older than N days (default: 0=disabled)
+- SHORT_MEMORY_MAX_TURNS_PER_SESSION: cap short-term turns per session (default: 0=disabled)
 - MEMORY_LONG_ENABLED: enable long-term memory (default: false)
 - MEMORY_COLLECTION_PREFIX: long-memory collection prefix (default: memory)
+- MEMORY_LONG_RETENTION_DAYS: prune facts older than N days (default: 0=disabled)
+- MEMORY_LONG_MAX_FACTS: keep at most N facts per user (default: 0=disabled)
 - MLFLOW_TRACKING_URI, MLFLOW_EXPERIMENT_NAME: MLflow configuration
 - ML_BASELINE_DATA, ML_INPUT_DATA: paths for drift script defaults
 

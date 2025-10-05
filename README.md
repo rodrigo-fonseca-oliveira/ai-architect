@@ -214,7 +214,13 @@ ai-risk-monitor/
 
 * `GET /metrics` → Prometheus text (latency, tokens, cost, requests)
 
-* `GET /healthz` → liveness probe
+* `GET /memory/short` — list short-term memory for a session (analyst/admin)
+* `DELETE /memory/short` — clear short-term memory for a session (analyst/admin)
+* `GET /memory/long` — list long-term facts (analyst/admin)
+* `DELETE /memory/long` — clear long-term facts (analyst/admin)
+* `GET /memory/long/export` — export long-term facts (analyst/admin)
+* `POST /memory/long/import` — import long-term facts (analyst/admin)
+* `GET /memory/status` — admin-only status and config overview
 
 ---
 

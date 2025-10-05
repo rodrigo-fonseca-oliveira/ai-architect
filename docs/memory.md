@@ -44,4 +44,12 @@ Privacy and retention
 
 Export/Import (long-term)
 - GET /memory/long/export?user_id=... (analyst/admin): export raw facts for the user
+  - Each fact includes: id, text, created_at, metadata, and export-only hints: embedding_present, embedding_dim
 - POST /memory/long/import?user_id=... with body {"facts": [{"text": "...", "metadata": {...}}]} to import facts (deduped by text hash)
+
+Status endpoint (admin only)
+- GET /memory/status returns current config, a summary of short/long memory, cumulative pruning counters, and audit metadata
+
+Retention quick start
+- SHORT_MEMORY_RETENTION_DAYS=7; SHORT_MEMORY_MAX_TURNS_PER_SESSION=100
+- MEMORY_LONG_RETENTION_DAYS=180; MEMORY_LONG_MAX_FACTS=500
