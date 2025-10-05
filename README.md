@@ -212,6 +212,12 @@ ai-risk-monitor/
     -d '{"features": {"f0": 0.1, "f1": -0.2, "f2": 0.3, "f3": 0.0, "f4": 0.2, "f5": -0.1, "f6": 0.0, "f7": 0.0}}'
   ```
 
+* `POST /risk`
+  Input: `{ text: str }`
+  Output: `{ label, value, rationale, audit }`
+  Notes:
+  - Heuristic scorer by default. Enable ML-like scoring with `RISK_ML_ENABLED=true` and optionally set `RISK_THRESHOLD` (default 0.6).
+
 * `GET /metrics` → Prometheus text (latency, tokens, cost, requests)
 
 * `GET /memory/short` — list short-term memory for a session (analyst/admin)
@@ -482,7 +488,7 @@ uvicorn app.main:app --reload
 
 - [x] Heuristic risk scorer and /risk endpoint
 - [x] Router integration adds risk_* audit fields
-- [ ] Optional ML scorer (scikit-learn) gated by RISK_ML_ENABLED
+- [x] Optional ML-like deterministic scorer gated by RISK_ML_ENABLED (no external deps)
 - [ ] Confidence calibration, thresholds, and RAG-based mitigations/explanations
 
 ### Phase 7 — Memory

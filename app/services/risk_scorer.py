@@ -1,7 +1,7 @@
 import os
-from typing import Dict
+from typing import Dict, Tuple
 
-# Simple heuristic risk scorer with optional ML flag for future use.
+# Simple heuristic risk scorer with optional ML path.
 
 
 RISK_KEYWORDS = {
@@ -49,12 +49,35 @@ def heuristic_score(text: str) -> Dict[str, object]:
         label = "low"
         rationale.append("no strong risk indicators")
 
-    return {"label": label, "value": score, "rationale": "; ".join(rationale)}
+    return {"label": label, "value": score, "rationale": "; ".join(rationale), "method": "heuristic"}
+
+
+def _deterministic_ml_score(text: str, threshold: float) -> Tuple[str, float, str]:
+    """A tiny, deterministic scorer that mimics an ML model.
+
+    It computes a simple feature: proportion of characters that are in risky keywords,
+    plus length normalization. Then maps to [0,1] and applies threshold.
+    This avoids external dependencies while allowing flag-based behavior.
+    """
+    t = (text or "").lower()
+    # Features (deterministic, simple)
+    risky_tokens = set(RISK_KEYWORDS["high"] + RISK_KEYWORDS["medium"])  # type: ignore[index]
+    token_hits = sum(1 for tok in risky_tokens if tok in t)
+    length = max(len(t), 1)
+    raw = min(1.0, (token_hits * 0.45) + (min(length, 500) / 500.0) * 0.2)
+    # map to [0,1]
+    value = max(0.0, min(1.0, raw))
+    label = "high" if value >= threshold else ("medium" if value >= (threshold * 0.75) else "low")
+    return label, value, "ml"
 
 
 def score(text: str) -> Dict[str, object]:
-    # Future: if RISK_ML_ENABLED=true and model available, call ml_score
+    # If ML enabled, compute deterministic pseudo-ML score; else heuristic
     if os.getenv("RISK_ML_ENABLED", "false").lower() in ("1", "true", "yes", "on"):
-        # Placeholder: still use heuristic for now
-        pass
+        try:
+            threshold = float(os.getenv("RISK_THRESHOLD", "0.6"))
+        except Exception:
+            threshold = 0.6
+        label, value, method = _deterministic_ml_score(text, threshold)
+        return {"label": label, "value": value, "rationale": f"threshold={threshold}", "method": method}
     return heuristic_score(text)

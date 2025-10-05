@@ -53,6 +53,7 @@ def post_risk(req: Request, payload: RiskRequest):
         "response_hash": make_hash(answer),
         "risk_score_label": result["label"],
         "risk_score_value": result["value"],
+        "risk_score_method": result.get("method", "heuristic"),
     }
 
     # Persist audit (best-effort)
