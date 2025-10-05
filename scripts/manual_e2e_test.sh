@@ -84,8 +84,21 @@ fi
 
 # 4) Router intents
 export ROUTER_ENABLED=true
+# Deterministic router checks with crafted prompts
 req router_pii "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -d '{\"question\":\"Email is bob@example.com\",\"grounded\": false}' | jq ."
+PII_INTENT=$(jq -r '.audit.router_intent // empty' "$RUN_DIR/router_pii.out" 2>/dev/null || echo "")
+if [[ "$PII_INTENT" != "pii_detect" && "$PII_INTENT" != "qa" ]]; then
+  echo "FAIL: router intent for PII-like prompt unexpected: '$PII_INTENT'" | tee -a "$RUN_DIR/trace.log"; EXIT_CODE=1
+else
+  echo "PASS: router intent for PII-like prompt = $PII_INTENT" | tee -a "$RUN_DIR/trace.log"
+fi
 req router_risk "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -d '{\"question\":\"What is the risk score for this incident?\",\"grounded\": false}' | jq ."
+RISK_INTENT=$(jq -r '.audit.router_intent // empty' "$RUN_DIR/router_risk.out" 2>/dev/null || echo "")
+if [[ "$RISK_INTENT" != "risk_score" && "$RISK_INTENT" != "qa" ]]; then
+  echo "FAIL: router intent for risk-like prompt unexpected: '$RISK_INTENT'" | tee -a "$RUN_DIR/trace.log"; EXIT_CODE=1
+else
+  echo "PASS: router intent for risk-like prompt = $RISK_INTENT" | tee -a "$RUN_DIR/trace.log"
+fi
 req router_policy "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -d '{\"question\":\"What policy covers encryption?\",\"grounded\": false}' | jq ."
 # Ambiguous prompt fallback check
 req router_ambiguous "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -d '{\"question\":\"Tell me something interesting\",\"grounded\": false}' | jq ."
@@ -95,14 +108,23 @@ req pii_basic "curl -sS -X POST $API_URL/pii -H 'Content-Type: application/json'
 req pii_ssn "curl -sS -X POST $API_URL/pii -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"text\":\"SSN 123-45-6789 and email john.doe@example.com\",\"include_citations\": false}' | jq ."
 req pii_cc "curl -sS -X POST $API_URL/pii -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"text\":\"My Visa is 4111 1111 1111 1111 exp 10/30\",\"include_citations\": false}' | jq ."
 req pii_with_citations "curl -sS -X POST $API_URL/pii -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"text\":\"Call me at (212) 555-0100 or email me@example.com\",\"include_citations\": true}' | jq ."
-# Assert PII include_citations contains entities and counts
+# Shape & coherence assertions for include_citations
 PII_TYPES=$(jq -r '.types_present | join(",")' "$RUN_DIR/pii_with_citations.out" 2>/dev/null || echo "")
-if [[ -z "$PII_TYPES" ]]; then echo "FAIL: PII include_citations case missing types_present" | tee -a "$RUN_DIR/trace.log"; exit 1; else echo "PASS: PII include_citations returned types [$PII_TYPES]" | tee -a "$RUN_DIR/trace.log"; fi
+if [[ -z "$PII_TYPES" ]]; then echo "FAIL: PII include_citations missing types_present" | tee -a "$RUN_DIR/trace.log"; EXIT_CODE=1; else echo "PASS: PII include_citations types_present=[$PII_TYPES]" | tee -a "$RUN_DIR/trace.log"; fi
+ENT_OK=$(jq -r '((.entities // []) | all(. as $e | ($e|has("type")) and ($e|has("value_preview")) and ($e|has("span"))))' "$RUN_DIR/pii_with_citations.out" 2>/dev/null || echo "false")
+if [[ "$ENT_OK" != "true" ]]; then echo "FAIL: PII entities missing required fields" | tee -a "$RUN_DIR/trace.log"; EXIT_CODE=1; else echo "PASS: PII entities fields present" | tee -a "$RUN_DIR/trace.log"; fi
 # RBAC negative case (expect 403)
 set +e
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST $API_URL/pii -H 'Content-Type: application/json' -d '{"text":"no role header should 403"}')
 set -e
-if [[ "$HTTP_CODE" != "403" ]]; then echo "FAIL: /pii without role should be 403, got $HTTP_CODE" | tee -a "$RUN_DIR/trace.log"; exit 1; else echo "PASS: /pii RBAC enforced (403)" | tee -a "$RUN_DIR/trace.log"; fi
+if [[ "$HTTP_CODE" != "403" ]]; then 
+  echo "FAIL: /pii without role should be 403, got $HTTP_CODE" | tee -a "$RUN_DIR/trace.log"; EXIT_CODE=1 
+else 
+  echo "PASS: /pii RBAC enforced (403)" | tee -a "$RUN_DIR/trace.log"
+  # Save the 403 response body for inspection
+  curl -sS -X POST $API_URL/pii -H 'Content-Type: application/json' -d '{"text":"no role header should 403"}' | tee "$RUN_DIR/pii_rbac_negative.out" >/dev/null
+  echo "INFO: saved RBAC negative response to $RUN_DIR/pii_rbac_negative.out" | tee -a "$RUN_DIR/trace.log"
+fi
 
 # 6) Risk scoring + assertions
 req risk_heuristic "curl -sS -X POST $API_URL/risk -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"text\":\"Critical breach and violation, potential lawsuit\"}' | jq ."
@@ -122,25 +144,20 @@ req risk_edge "curl -sS -X POST $API_URL/risk -H 'Content-Type: application/json
 
 # 7) Memory — short-term
 export MEMORY_SHORT_ENABLED=true
-req memory_short_drive "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -d '{\"question\":\"hello\",\"user_id\":\"u\",\"session_id\":\"s\"}' | jq ."
+export SHORT_MEMORY_MAX_TURNS_PER_SESSION=2
+# Drive more turns than cap to exercise pruning
+req memory_short_drive1 "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -d '{\"question\":\"hello\",\"user_id\":\"u\",\"session_id\":\"s\"}' | jq ."
+req memory_short_drive2 "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -d '{\"question\":\"world\",\"user_id\":\"u\",\"session_id\":\"s\"}' | jq ."
+req memory_short_drive3 "curl -sS -X POST $API_URL/query -H 'Content-Type: application/json' -d '{\"question\":\"again\",\"user_id\":\"u\",\"session_id\":\"s\"}' | jq ."
 req memory_short_list "curl -sS \"$API_URL/memory/short?user_id=u&session_id=s\" -H 'X-User-Role: analyst' | jq ."
 sleep 0.1
 req memory_short_clear "curl -sS -X DELETE \"$API_URL/memory/short?user_id=u&session_id=s\" -H 'X-User-Role: analyst' | jq ."
-# Assert cleared semantics: if there were turns before, expect cleared=true; else allow false
-TURNS_BEFORE=$(jq '.turns | length' "$RUN_DIR/memory_short_list.out" 2>/dev/null || echo 0)
+# Assert cleared semantics with prior turns
 CLEARED_SHORT=$(jq -r '.cleared // empty' "$RUN_DIR/memory_short_clear.out" 2>/dev/null || echo "")
-if [[ ${TURNS_BEFORE:-0} -gt 0 ]]; then
-  if [[ "$CLEARED_SHORT" != "true" ]]; then
-    echo "FAIL: short memory had $TURNS_BEFORE turns before clear but cleared=$CLEARED_SHORT" | tee -a "$RUN_DIR/trace.log"; exit 1
-  else
-    echo "PASS: short memory cleared (had $TURNS_BEFORE turns)" | tee -a "$RUN_DIR/trace.log"
-  fi
+if [[ "$CLEARED_SHORT" != "true" ]]; then
+  echo "FAIL: expected short memory cleared=true after prior turns, got '$CLEARED_SHORT'" | tee -a "$RUN_DIR/trace.log"; EXIT_CODE=1
 else
-  if [[ "$CLEARED_SHORT" == "true" ]]; then
-    echo "PASS: short memory cleared (no prior turns)" | tee -a "$RUN_DIR/trace.log"
-  else
-    echo "INFO: short memory had no turns; cleared=$CLEARED_SHORT (expected no-op)" | tee -a "$RUN_DIR/trace.log"
-  fi
+  echo "PASS: short memory cleared after prior turns" | tee -a "$RUN_DIR/trace.log"
 fi
 
 # 8) Memory — long-term + retrieval assertion
@@ -186,17 +203,19 @@ req rag_flags_single "curl -sS -X POST $API_URL/query -H 'Content-Type: applicat
 # 11) Observability
 req openapi "python scripts/export_openapi.py && ls -l docs/openapi.yaml"
 # Metrics delta checks
-PII_COUNT_BEFORE=$(curl -sS /metrics | awk -F' ' '/^app_requests_total\{endpoint="\/pii",status="200"\}/ {print ; exit}')
-req metrics_after "curl -sS /metrics | head -n 50"
-PII_COUNT_AFTER=$(curl -sS /metrics | awk -F' ' '/^app_requests_total\{endpoint="\/pii",status="200"\}/ {print ; exit}')
-if [[ -n "" && -n "" ]]; then
-  if awk "BEGIN {exit !( > )}"; then
-    echo "PASS: /pii app_requests_total increased ( -> )" | tee -a "/trace.log"
+RISK_COUNT_BEFORE=$(curl -sS $API_URL/metrics | awk -F' ' '/^app_requests_total\{endpoint="\/risk",status="200"\}/ {print $2; exit}')
+PII_COUNT_BEFORE=$(curl -sS $API_URL/metrics | awk -F' ' '/^app_requests_total\{endpoint="\/pii",status="200"\}/ {print $2; exit}')
+req metrics_after "curl -sS $API_URL/metrics | head -n 50"
+RISK_COUNT_AFTER=$(curl -sS $API_URL/metrics | awk -F' ' '/^app_requests_total\{endpoint="\/risk",status="200"\}/ {print $2; exit}')
+PII_COUNT_AFTER=$(curl -sS $API_URL/metrics | awk -F' ' '/^app_requests_total\{endpoint="\/pii",status="200"\}/ {print $2; exit}')
+if [[ -n "$PII_COUNT_BEFORE" && -n "$PII_COUNT_AFTER" && -n "$RISK_COUNT_BEFORE" && -n "$RISK_COUNT_AFTER" ]]; then
+  if awk "BEGIN {exit !($PII_COUNT_AFTER >= $PII_COUNT_BEFORE && $RISK_COUNT_AFTER >= $RISK_COUNT_BEFORE)}"; then
+    echo "PASS: metrics deltas non-decreasing for /pii and /risk" | tee -a "$RUN_DIR/trace.log"
   else
-    echo "WARN: /pii app_requests_total did not increase (before=, after=)" | tee -a "/trace.log"
+    echo "WARN: metrics deltas did not increase as expected (pii: $PII_COUNT_BEFORE->$PII_COUNT_AFTER, risk: $RISK_COUNT_BEFORE->$RISK_COUNT_AFTER)" | tee -a "$RUN_DIR/trace.log"
   fi
 else
-  echo "INFO: Could not parse /pii request counter from metrics" | tee -a "/trace.log"
+  echo "INFO: Could not parse request counters from metrics" | tee -a "$RUN_DIR/trace.log"
 fi
 
 # 12) Optional stress
