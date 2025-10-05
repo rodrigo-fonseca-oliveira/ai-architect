@@ -289,6 +289,11 @@ flowchart LR
 
 ---
 
+## Retrieval backend notes
+
+- The legacy Chroma-based retrieval path (used when LC_RAG_ENABLED=false) may return no citations in certain isolated environments due to persistence edge cases. For stable behavior and future features, prefer the LangChain backend by setting LC_RAG_ENABLED=true.
+- We plan to deprecate the legacy path and consolidate on LangChain, including multi-query and hyDE improvements.
+
 ## Local development and testing
 
 See docs/testing.md for a full cheat sheet. You can also use the Makefile for convenience.
