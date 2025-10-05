@@ -8,6 +8,10 @@ from app.utils.rbac import parse_role, require_role
 
 router = APIRouter()
 
+# in-process cumulative counters for pruning (since startup)
+_memory_short_pruned_total = 0
+_memory_long_pruned_total = 0
+
 
 class MemoryShortResponse(BaseModel):
     turns: list
@@ -39,6 +43,12 @@ def get_short_memory(req: Request, user_id: str, session_id: str):
             turns = load_turns(user_id, session_id)
             # read pruned count if the loader attached it
             pruned_short = int(getattr(load_turns, "_last_pruned", 0))
+            # bump cumulative counter
+            try:
+                global _memory_short_pruned_total
+                _memory_short_pruned_total += pruned_short
+            except Exception:
+                pass
             reads = len(turns)
             summary = load_summary(user_id, session_id)
         except Exception:
@@ -110,6 +120,11 @@ def get_long_memory(req: Request, user_id: str, q: Optional[str] = None):
             query = q or ""
             facts = retrieve_facts(user_id, query)
             pruned_long = int(getattr(retrieve_facts, "_last_pruned", 0))
+            try:
+                global _memory_long_pruned_total
+                _memory_long_pruned_total += pruned_long
+            except Exception:
+                pass
             reads = len(facts)
         except Exception:
             facts = []
@@ -148,6 +163,67 @@ def delete_long_memory(req: Request, user_id: str):
     }
     audit = {k: v for k, v in audit.items() if v is not None}
     return {"cleared": bool(cleared), "audit": audit}
+
+
+@router.get("/memory/status", response_model=dict)
+def get_memory_status(req: Request):
+    role = parse_role(req)
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="forbidden")
+    # collect config
+    cfg = {
+        "MEMORY_SHORT_ENABLED": os.getenv("MEMORY_SHORT_ENABLED", "false"),
+        "MEMORY_DB_PATH": os.getenv("MEMORY_DB_PATH", "./data/memory_short.db"),
+        "SHORT_MEMORY_RETENTION_DAYS": os.getenv("SHORT_MEMORY_RETENTION_DAYS", "0"),
+        "SHORT_MEMORY_MAX_TURNS_PER_SESSION": os.getenv("SHORT_MEMORY_MAX_TURNS_PER_SESSION", "0"),
+        "MEMORY_LONG_ENABLED": os.getenv("MEMORY_LONG_ENABLED", "false"),
+        "MEMORY_LONG_RETENTION_DAYS": os.getenv("MEMORY_LONG_RETENTION_DAYS", "0"),
+        "MEMORY_LONG_MAX_FACTS": os.getenv("MEMORY_LONG_MAX_FACTS", "0"),
+        "MEMORY_COLLECTION_PREFIX": os.getenv("MEMORY_COLLECTION_PREFIX", "memory"),
+    }
+    # short memory status
+    short = {"sessions": [], "db_ok": False}
+    try:
+        from app.memory.short_memory import get_db_path
+        import sqlite3
+        dbp = get_db_path()
+        # health: file exists or directory writable
+        try:
+            os.makedirs(os.path.dirname(dbp) or ".", exist_ok=True)
+            short["db_ok"] = True
+        except Exception:
+            short["db_ok"] = False
+        # collect sessions and counts
+        conn = sqlite3.connect(dbp, check_same_thread=False)
+        c = conn.cursor()
+        c.execute("SELECT user_id, session_id, COUNT(1) FROM turns GROUP BY user_id, session_id")
+        for u, s, n in c.fetchall():
+            # check summary presence
+            c2 = conn.cursor()
+            c2.execute("SELECT 1 FROM summaries WHERE user_id=? AND session_id=?", (u, s))
+            has_sum = c2.fetchone() is not None
+            short["sessions"].append({"user_id": u, "session_id": s, "turns": int(n), "summary": bool(has_sum)})
+        conn.close()
+    except Exception:
+        pass
+    # long memory status
+    long = {"users": [], "store_ok": True}
+    try:
+        from app.memory.long_memory import _FACT_STORE
+        for u, facts in _FACT_STORE.items():
+            long["users"].append({"user_id": u, "facts": len(facts)})
+    except Exception:
+        long["store_ok"] = False
+    counters = {
+        "memory_short_pruned_total": _memory_short_pruned_total,
+        "memory_long_pruned_total": _memory_long_pruned_total,
+    }
+    audit = {
+        "request_id": getattr(req.state, "request_id", "unknown"),
+        "endpoint": "/memory/status",
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    return {"config": cfg, "short_memory": short, "long_memory": long, "counters": counters, "audit": audit}
 
 
 @router.get("/memory/long/export", response_model=MemoryLongResponse)
@@ -212,7 +288,13 @@ def import_long_memory(req: Request, user_id: str, payload: MemoryImportPayload)
                 meta = f.get("metadata") or {}
                 ingest_fact(user_id, text, meta)
                 # track evictions triggered by import
-                pruned_long += int(getattr(ingest_fact, "_last_evicted", 0) or 0)
+                ev = int(getattr(ingest_fact, "_last_evicted", 0) or 0)
+                pruned_long += ev
+                try:
+                    global _memory_long_pruned_total
+                    _memory_long_pruned_total += ev
+                except Exception:
+                    pass
                 imported += 1
         except Exception:
             imported = 0
@@ -222,6 +304,7 @@ def import_long_memory(req: Request, user_id: str, payload: MemoryImportPayload)
         "endpoint": "/memory/long/import",
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "memory_long_writes": imported if enabled else None,
+        "memory_long_pruned": pruned_long if enabled else None,
     }
     audit = {k: v for k, v in audit.items() if v is not None}
     return {"imported": imported, "audit": audit}
