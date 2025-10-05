@@ -1,247 +1,1312 @@
-openapi: 3.1.0
-info:
-  title: AI Risk & Compliance Monitor
-  version: 0.1.0
-  description: >
-    FastAPI gateway that wraps LLM/RAG, Agent, and ML predictions with
-    audit logging, token/cost tracking, and basic governance hooks.
-servers:
-  - url: http://localhost:8000
-    description: Local dev
-
-paths:
-  /healthz:
-    get:
-      summary: Liveness check
-      responses:
-        "200":
-          description: OK
-
-  /metrics:
-    get:
-      summary: Prometheus metrics
-      responses:
-        "200":
-          description: Prometheus text format
-
-  /query:
-    post:
-      summary: Ask a question via LLM with optional RAG grounding
-      operationId: postQuery
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/QueryRequest"
-            examples:
-              basic:
-                value:
-                  question: "What is GDPR?"
-                  grounded: true
-                  user_id: "u-123"
-      responses:
-        "200":
-          description: LLM answer with optional citations and cost
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/QueryResponse"
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Error" }
-
-  /research:
-    post:
-      summary: Agentic research pipeline (search → fetch → summarize → risk_check)
-      operationId: postResearch
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ResearchRequest"
-            examples:
-              default:
-                value:
-                  topic: "Latest updates on GDPR and AI"
-                  steps: ["search","fetch","summarize","risk_check"]
-                  user_id: "u-123"
-      responses:
-        "200":
-          description: Structured research output with audit trace
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ResearchResponse"
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Error" }
-
-  /predict:
-    post:
-      summary: Predict via model served from MLflow registry
-      operationId: postPredict
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PredictRequest"
-            examples:
-              churn:
-                value:
-                  user_id: "u-123"
-                  features:
-                    tenure_months: 15
-                    monthly_charges: 72.5
-                    contract_type: "month-to-month"
-      responses:
-        "200":
-          description: Prediction with model metadata
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PredictResponse"
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Error" }
-
-components:
-  schemas:
-    # ---- Common ----
-    Error:
-      type: object
-      properties:
-        detail:
-          type: string
-        request_id:
-          type: string
-      required: [detail]
-
-    AuditMeta:
-      type: object
-      properties:
-        request_id: { type: string }
-        user_id: { type: string, nullable: true }
-        endpoint: { type: string }
-        created_at: { type: string, format: date-time }
-        tokens_prompt: { type: integer, nullable: true }
-        tokens_completion: { type: integer, nullable: true }
-        cost_usd: { type: number, format: float, nullable: true }
-        latency_ms: { type: integer, nullable: true }
-        compliance_flag: { type: boolean, default: false }
-        prompt_hash: { type: string, nullable: true }
-        response_hash: { type: string, nullable: true }
-
-    # ---- /query ----
-    QueryRequest:
-      type: object
-      properties:
-        question:
-          type: string
-          minLength: 3
-        grounded:
-          type: boolean
-          default: false
-        user_id:
-          type: string
-          nullable: true
-      required: [question]
-    Citation:
-      type: object
-      properties:
-        source: { type: string }          # file name / url
-        page: { type: integer, nullable: true }
-        snippet: { type: string, nullable: true }
-    QueryResponse:
-      type: object
-      properties:
-        answer: { type: string }
-        citations:
-          type: array
-          items: { $ref: "#/components/schemas/Citation" }
-        audit: { $ref: "#/components/schemas/AuditMeta" }
-      required: [answer, audit]
-
-    # ---- /research ----
-    ResearchRequest:
-      type: object
-      properties:
-        topic: { type: string, minLength: 3 }
-        steps:
-          type: array
-          items:
-            type: string
-            enum: [search, fetch, summarize, risk_check]
-          default: [search, fetch, summarize, risk_check]
-        user_id:
-          type: string
-          nullable: true
-      required: [topic]
-    AgentStep:
-      type: object
-      properties:
-        name: { type: string }
-        inputs: { type: object, additionalProperties: true }
-        outputs: { type: object, additionalProperties: true }
-        latency_ms: { type: integer }
-        hash: { type: string }
-        timestamp: { type: string, format: date-time }
-    ResearchResponse:
-      type: object
-      properties:
-        findings:
-          type: array
-          items:
-            type: object
-            properties:
-              title: { type: string }
-              summary: { type: string }
-              url: { type: string }
-        sources:
-          type: array
-          items:
-            type: string
-        audit: { $ref: "#/components/schemas/AuditMeta" }
-        steps:
-          type: array
-          items: { $ref: "#/components/schemas/AgentStep" }
-      required: [findings, audit]
-
-    # ---- /predict ----
-    PredictRequest:
-      type: object
-      properties:
-        user_id:
-          type: string
-          nullable: true
-        features:
-          type: object
-          additionalProperties:
-            oneOf:
-              - { type: number }
-              - { type: string }
-              - { type: boolean }
-      required: [features]
-    PredictResponse:
-      type: object
-      properties:
-        prediction:
-          oneOf:
-            - { type: number }
-            - { type: string }
-            - type: object
-              additionalProperties: true
-        model_version: { type: string }
-        metrics:
-          type: object
-          additionalProperties: { type: number }
-        audit: { $ref: "#/components/schemas/AuditMeta" }
-      required: [prediction, model_version, audit]
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI Risk & Compliance Monitor",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "summary": "Healthz",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "summary": "Metrics",
+        "operationId": "metrics_metrics_get",
+        "parameters": [
+          {
+            "name": "X-Metrics-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Metrics-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/query": {
+      "post": {
+        "summary": "Post Query",
+        "operationId": "post_query_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/research": {
+      "post": {
+        "summary": "Post Research",
+        "operationId": "post_research_research_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predict": {
+      "post": {
+        "summary": "Post Predict",
+        "operationId": "post_predict_predict_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PredictRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pii": {
+      "post": {
+        "summary": "Post Pii",
+        "operationId": "post_pii_pii_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PiiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PiiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/risk": {
+      "post": {
+        "summary": "Post Risk",
+        "operationId": "post_risk_risk_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RiskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/memory/short": {
+      "get": {
+        "summary": "Get Short Memory",
+        "operationId": "get_short_memory_memory_short_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryShortResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Short Memory",
+        "operationId": "delete_short_memory_memory_short_delete",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete Short Memory Memory Short Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/memory/long": {
+      "get": {
+        "summary": "Get Long Memory",
+        "operationId": "get_long_memory_memory_long_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryLongResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Long Memory",
+        "operationId": "delete_long_memory_memory_long_delete",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete Long Memory Memory Long Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/memory/status": {
+      "get": {
+        "summary": "Get Memory Status",
+        "operationId": "get_memory_status_memory_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Memory Status Memory Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/memory/long/export": {
+      "get": {
+        "summary": "Export Long Memory",
+        "operationId": "export_long_memory_memory_long_export_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryLongResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/memory/long/import": {
+      "post": {
+        "summary": "Import Long Memory",
+        "operationId": "import_long_memory_memory_long_import_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryImportPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Import Long Memory Memory Long Import Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/policy_navigator": {
+      "post": {
+        "summary": "Post Policy Navigator",
+        "operationId": "post_policy_navigator_policy_navigator_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pii_remediation": {
+      "post": {
+        "summary": "Post Pii Remediation",
+        "operationId": "post_pii_remediation_pii_remediation_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PiiRemediationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PiiRemediationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AgentStep": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Inputs"
+          },
+          "outputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Outputs"
+          },
+          "latency_ms": {
+            "type": "integer",
+            "title": "Latency Ms"
+          },
+          "hash": {
+            "type": "string",
+            "title": "Hash"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "inputs",
+          "outputs",
+          "latency_ms",
+          "hash",
+          "timestamp"
+        ],
+        "title": "AgentStep"
+      },
+      "Citation": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "snippet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snippet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source"
+        ],
+        "title": "Citation"
+      },
+      "Finding": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "summary"
+        ],
+        "title": "Finding"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MemoryImportPayload": {
+        "properties": {
+          "facts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Facts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "facts"
+        ],
+        "title": "MemoryImportPayload"
+      },
+      "MemoryLongResponse": {
+        "properties": {
+          "facts": {
+            "items": {},
+            "type": "array",
+            "title": "Facts"
+          },
+          "audit": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "facts",
+          "audit"
+        ],
+        "title": "MemoryLongResponse"
+      },
+      "MemoryShortResponse": {
+        "properties": {
+          "turns": {
+            "items": {},
+            "type": "array",
+            "title": "Turns"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "audit": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "turns",
+          "audit"
+        ],
+        "title": "MemoryShortResponse"
+      },
+      "PiiRemediationRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 3,
+            "title": "Text"
+          },
+          "return_snippets": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return Snippets",
+            "default": true
+          },
+          "grounded": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grounded",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "PiiRemediationRequest"
+      },
+      "PiiRemediationResponse": {
+        "properties": {
+          "remediation": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Remediation"
+          },
+          "citations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Citations",
+            "default": []
+          },
+          "audit": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "remediation",
+          "audit"
+        ],
+        "title": "PiiRemediationResponse"
+      },
+      "PiiRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Text"
+          },
+          "types": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Types"
+          },
+          "grounded": {
+            "type": "boolean",
+            "title": "Grounded",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "PiiRequest"
+      },
+      "PiiResponse": {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "entities": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Entities"
+          },
+          "counts": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Counts"
+          },
+          "types_present": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Types Present"
+          },
+          "audit": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "entities",
+          "counts",
+          "types_present",
+          "audit"
+        ],
+        "title": "PiiResponse"
+      },
+      "PolicyRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 3,
+            "title": "Question"
+          },
+          "max_subqs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Subqs",
+            "description": "Override max sub-questions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "PolicyRequest"
+      },
+      "PolicyResponse": {
+        "properties": {
+          "recommendation": {
+            "type": "string",
+            "title": "Recommendation"
+          },
+          "citations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "audit": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recommendation",
+          "citations",
+          "audit"
+        ],
+        "title": "PolicyResponse"
+      },
+      "PredictRequest": {
+        "properties": {
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "features": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "features"
+        ],
+        "title": "PredictRequest"
+      },
+      "PredictResponse": {
+        "properties": {
+          "prediction": {
+            "title": "Prediction"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Metrics",
+            "default": {}
+          },
+          "audit": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prediction",
+          "model_version",
+          "audit"
+        ],
+        "title": "PredictResponse"
+      },
+      "QueryRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 3,
+            "title": "Question"
+          },
+          "grounded": {
+            "type": "boolean",
+            "title": "Grounded",
+            "default": false
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "intent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intent",
+            "description": "auto|qa|pii_detect|risk_score|other",
+            "default": "auto"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "QueryRequest"
+      },
+      "QueryResponse": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citations",
+            "default": []
+          },
+          "audit": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "audit"
+        ],
+        "title": "QueryResponse"
+      },
+      "ResearchRequest": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "minLength": 3,
+            "title": "Topic"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steps"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic"
+        ],
+        "title": "ResearchRequest"
+      },
+      "ResearchResponse": {
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "audit": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audit"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/AgentStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "findings",
+          "sources",
+          "audit"
+        ],
+        "title": "ResearchResponse"
+      },
+      "RiskRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "RiskRequest"
+      },
+      "RiskResponse": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "audit": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "value",
+          "rationale",
+          "audit"
+        ],
+        "title": "RiskResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
