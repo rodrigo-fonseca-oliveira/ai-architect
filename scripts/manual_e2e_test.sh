@@ -84,7 +84,7 @@ req memory_long_list "curl -sS \"$API_URL/memory/long?user_id=lu\" -H 'X-User-Ro
 req memory_long_clear "curl -sS -X DELETE \"$API_URL/memory/long?user_id=lu\" -H 'X-User-Role: admin' | jq ."
 
 # 9) Agents — research
-req research "curl -sS -X POST $API_URL/research -H 'Content-Type: application/json' -d '{\"topic\":\"Latest updates on GDPR and AI\",\"steps\":[\"search\",\"fetch\",\"summarize\",\"risk_check\"]}' | jq ."
+req research "curl -sS -X POST $API_URL/research -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{\"topic\":\"Latest updates on GDPR and AI\",\"steps\":[\"search\",\"fetch\",\"summarize\",\"risk_check\"]}' | jq ."
 
 # 10) RAG flags
 export RAG_MULTI_QUERY_ENABLED=true; export RAG_MULTI_QUERY_COUNT=4; export RAG_HYDE_ENABLED=true
