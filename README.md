@@ -465,9 +465,10 @@ uvicorn app.main:app --reload
 - [x] Short-term conversation memory (buffer + rolling summary) per session_id
 - [x] Long-term in-process semantic memory (user facts) with retrieval and ingestion
 - [x] /query integration: optional session_id, reads/writes, rolling summary after max turns
-- [x] Audit enrichment: memory_short_reads/writes, summary_updated, memory_long_reads/writes
-- [x] Docs and tests for memory
-- [ ] Endpoints to list/clear memory; RBAC and retention policies
+- [x] Audit enrichment: memory_short_reads/writes, summary_updated, memory_long_reads/writes, memory_short_pruned, memory_long_pruned
+- [x] Endpoints to list/clear memory; RBAC and retention policies
+- [x] Export/Import long memory; enriched export fields
+- [x] Docs and tests for memory and retention
 
 ### Phase 8 — Agentic workflows and polish
 * Policy Navigator Agent (decompose → retrieve → synthesize → recommend)

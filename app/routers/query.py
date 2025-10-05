@@ -163,26 +163,42 @@ def post_query(req: Request, payload: QueryRequest):
     uid = payload.user_id or "anonymous"
     sid = getattr(payload, 'session_id', None) or "default"
 
+    memory_short_pruned = 0
     if short_enabled:
         try:
             from app.memory.short_memory import init_short_memory, load_turns, load_summary
             init_short_memory()
             turns = load_turns(uid, sid)
             memory_short_reads = len(turns)
+            memory_short_pruned = int(getattr(load_turns, "_last_pruned", 0))
             prefix = load_summary(uid, sid) or "\n".join(f"{r}: {c}" for r, c in turns)
             if prefix:
                 payload.question = f"{prefix}\n\nUser: {payload.question}"
+            try:
+                # bump cumulative short pruning counter
+                from app.routers import memory as memory_router_mod
+                memory_router_mod._memory_short_pruned_total += int(memory_short_pruned)
+            except Exception:
+                pass
         except Exception:
             pass
 
+    memory_long_pruned = 0
     if long_enabled:
         try:
             from app.memory.long_memory import retrieve_facts
             facts = retrieve_facts(uid, payload.question)
             memory_long_reads = len(facts)
+            memory_long_pruned = int(getattr(retrieve_facts, "_last_pruned", 0))
             if facts:
                 snippet = "\n".join(f"- {f['text']}" for f in facts)
                 payload.question = f"Relevant facts:\n{snippet}\n\nQuestion: {payload.question}"
+            try:
+                # bump cumulative long pruning counter
+                from app.routers import memory as memory_router_mod
+                memory_router_mod._memory_long_pruned_total += int(memory_long_pruned)
+            except Exception:
+                pass
         except Exception:
             pass
 
@@ -273,16 +289,18 @@ def post_query(req: Request, payload: QueryRequest):
         audit_dict["memory_short_reads"] = int(memory_short_reads)
         audit_dict["memory_short_writes"] = int(memory_short_writes)
         audit_dict["summary_updated"] = bool(summary_updated)
+        audit_dict["memory_short_pruned"] = int(memory_short_pruned)
     else:
-        for k in ("memory_short_reads", "memory_short_writes", "summary_updated"):
+        for k in ("memory_short_reads", "memory_short_writes", "summary_updated", "memory_short_pruned"):
             audit_dict.pop(k, None)
     if long_enabled:
         audit_dict["memory_long_reads"] = int(memory_long_reads)
         audit_dict["memory_long_writes"] = int(memory_long_writes)
+        audit_dict["memory_long_pruned"] = int(memory_long_pruned)
         audit.memory_long_reads = int(memory_long_reads)
         audit.memory_long_writes = int(memory_long_writes)
     else:
-        for k in ("memory_long_reads", "memory_long_writes"):
+        for k in ("memory_long_reads", "memory_long_writes", "memory_long_pruned"):
             audit_dict.pop(k, None)
         audit.memory_long_reads = None
         audit.memory_long_writes = None
@@ -304,10 +322,10 @@ def post_query(req: Request, payload: QueryRequest):
     # build response audit dict filtered by flags for correct field presence
     response_audit = audit_dict.copy()
     if not short_enabled:
-        for k in ("memory_short_reads", "memory_short_writes", "summary_updated"):
+        for k in ("memory_short_reads", "memory_short_writes", "summary_updated", "memory_short_pruned"):
             response_audit.pop(k, None)
     if not long_enabled:
-        for k in ("memory_long_reads", "memory_long_writes"):
+        for k in ("memory_long_reads", "memory_long_writes", "memory_long_pruned"):
             response_audit.pop(k, None)
 
     # Persist audit row, ensuring DB is initialized for current DB_URL

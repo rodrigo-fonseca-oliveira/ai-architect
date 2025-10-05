@@ -27,6 +27,9 @@ def test_short_memory_retention_and_cap(tmp_path):
     assert isinstance(data.get("turns", []), list)
     # turns are returned as role/content pairs; our cap applies in DB per-turn basis when enforcing
     assert len(data["turns"]) <= 3
+    # audit includes pruned count
+    assert "memory_short_pruned" in data["audit"]
+    assert isinstance(data["audit"]["memory_short_pruned"], int)
 
 
 def test_long_memory_retention_and_maxfacts():
@@ -41,9 +44,18 @@ def test_long_memory_retention_and_maxfacts():
     # export
     r = client.get("/memory/long/export", params={"user_id": uid}, headers=headers)
     assert r.status_code == 200
-    facts = r.json().get("facts", [])
+    body = r.json()
+    facts = body.get("facts", [])
     assert len(facts) <= 2  # max facts enforced
+    # audit includes pruned count and export fields present
+    assert "memory_long_pruned" in body["audit"]
+    if facts:
+        f0 = facts[0]
+        assert "id" in f0 and "text" in f0 and "created_at" in f0 and "metadata" in f0
+        assert "embedding_present" in f0 and "embedding_dim" in f0
     # import roundtrip to another user
     r2 = client.post("/memory/long/import", params={"user_id": uid+"_copy"}, json={"facts": [{"text": f.get("text", "")} for f in facts]}, headers=headers)
     assert r2.status_code == 200
-    assert r2.json().get("imported", 0) == len(facts)
+    rb = r2.json()
+    assert rb.get("imported", 0) == len(facts)
+    assert "memory_long_pruned" in rb["audit"]
