@@ -1,36 +1,13 @@
-# Router Agent
+# Agents
 
-The Router Agent is a simple, feature-flagged component that selects an intent for a /query request.
+## Policy Navigator Agent
 
-- Feature flag: ROUTER_ENABLED (default: false)
-- Backend: rules-based (rules_v1)
-- Possible intents:
-  - qa: question answering (RAG-backed when grounded=true)
-  - pii_detect: detect presence of PII in the prompt
-    - Patterns: email, phone, SSN, credit_card (+Luhn), ipv4, ipv6, iban, passport (heuristic)
-    - Config: PII_TYPES (comma-separated) to enable/disable detectors
-  - risk_score: assess risk-related questions
-    - Heuristics first (keywords): low/medium/high with a score in [0,1]
-    - Optional ML: RISK_ML_ENABLED (future) to use a small classifier
-  - other: fallback
-
-Routing rules (rules_v1):
-- If grounded=true → qa
-- If the question contains PII-like terms (e.g., "ssn", "social security", "credit card", "cc number", "email", "pii", "phone number") → pii_detect
-- If the question contains risk keywords (e.g., "risk", "severity", "score", "risk score", "impact") → risk_score
-- Otherwise → qa
-
-Audit metadata:
-- When ROUTER_ENABLED=true, the /query audit includes:
-  - router_backend: "rules_v1"
-  - router_intent: selected intent (qa|pii_detect|risk_score|other)
-
-Extending the router:
-- Edit app/services/router.py to add new intents or refine rules.
-- Consider extracting rules to a YAML/JSON config for dynamic updates.
-- Future: replace with a learned model or LLM classifier (guarded, cost-aware).
-
-Observability:
-- router_intent and rag_backend are included in the /query audit row for analytics.
-- When the router selects pii_detect, the audit includes pii_entities_count, pii_types, and pii_counts.
-- Structured logs include query_result events with rag_backend/router_backend/router_intent.
+- Endpoint: POST /policy_navigator (analyst/admin)
+- Behavior:
+  1) Decompose policy question into sub-questions (max POLICY_NAV_MAX_SUBQS, default 3)
+  2) Retrieve citations per sub-question using existing retriever
+  3) Synthesize a concise recommendation referencing evidence
+- Config:
+  - POLICY_NAV_ENABLED (default: true)
+  - POLICY_NAV_MAX_SUBQS (default: 3)
+- Audit: includes step entries for decompose, retrieve, synthesize with inputs/outputs preview and latency

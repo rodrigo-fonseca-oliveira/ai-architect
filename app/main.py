@@ -17,6 +17,7 @@ from .routers.predict import router as predict_router
 from .routers.pii import router as pii_router
 from .routers.risk import router as risk_router
 from .routers.memory import router as memory_router
+from .routers.policy import router as policy_router
 from .utils.logger import get_logger
 from .utils.metrics import request_count, request_latency
 
@@ -120,3 +121,4 @@ app.include_router(predict_router)
 app.include_router(pii_router)
 app.include_router(risk_router)
 app.include_router(memory_router)
+app.include_router(policy_router)

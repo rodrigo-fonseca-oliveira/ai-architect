@@ -61,6 +61,9 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
 - POST /risk — Risk scoring endpoint (analyst/admin)
   - Request: { text: str }
   - Response: { label, value, rationale, audit }
+- POST /policy_navigator — Policy Navigator Agent (analyst/admin)
+  - Request: { question: string, max_subqs?: number }
+  - Response: { recommendation: string, citations: [{source, snippet, page?}], audit: { steps[] } }
 
 - GET /memory/short — list short-term memory for a session (analyst/admin)
   - Params: user_id (required), session_id (required)
