@@ -529,6 +529,8 @@ uvicorn app.main:app --reload
 
 ## Tech stack
 
+Note: See docs/project_guide_rag.md for the upcoming “Project Guide RAG and Solution Architect Mode” plan.
+
 * **API**: FastAPI, Pydantic, Uvicorn
 * **LLM/RAG**: Local stub → (optionally) OpenAI/Azure/OpenRouter + FAISS/Chroma
 * **Agent**: simple orchestrator, `requests` for web fetch
