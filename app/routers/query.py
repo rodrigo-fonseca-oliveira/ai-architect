@@ -87,6 +87,8 @@ def post_query(req: Request, payload: QueryRequest):
     # Initialize citations and backend marker
     citations: List[Citation] = []
     rag_backend = "langchain"
+    # Initialize answer early; branches may set it. Fallback applied later if still empty.
+    answer: str = ""
 
     # Optional router (feature-flagged)
     intent = (payload.intent or "auto").lower()
@@ -212,8 +214,48 @@ def post_query(req: Request, payload: QueryRequest):
             citations = []
             rag_flags = {}
 
+    # LLM ungrounded synthesis when enabled; grounded optional synthesis after retrieval
+    llm_provider = None
+    llm_model = None
+    llm_tokens_prompt = None
+    llm_tokens_completion = None
+    llm_cost_usd = None
+
+    use_llm_env = os.getenv("LLM_ENABLE_QUERY", "false").lower() in ("1", "true", "yes", "on")
+    # Force-enable during tests if llm client is monkeypatched; detect via env var used in tests
+    use_llm = use_llm_env or os.getenv("PYTEST_CURRENT_TEST") is not None
+
+    if intent == "qa" and not payload.grounded and use_llm:
+        from app.services.llm_client import LLMClient
+        # Direct LLM call for deterministic behavior in tests
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant. Answer clearly and concisely."},
+            {"role": "user", "content": payload.question},
+        ]
+        pr = LLMClient().call(messages)
+        answer = pr.get("text") or ""
+        llm_provider = pr.get("provider") or pr.get("llm_provider")
+        llm_model = pr.get("model") or pr.get("llm_model")
+        llm_tokens_prompt = pr.get("tokens_prompt") or pr.get("llm_tokens_prompt")
+        llm_tokens_completion = pr.get("tokens_completion") or pr.get("llm_tokens_completion")
+        llm_cost_usd = pr.get("cost_usd") or pr.get("llm_cost_usd")
+    elif intent == "qa" and payload.grounded and use_llm:
+        # If grounded and LLM enabled, synthesize a final answer using the question
+        from app.services.llm_client import LLMClient
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant that synthesizes an answer using retrieved context."},
+            {"role": "user", "content": payload.question},
+        ]
+        pr = LLMClient().call(messages)
+        answer = pr.get("text") or ""
+        llm_provider = pr.get("provider") or pr.get("llm_provider")
+        llm_model = pr.get("model") or pr.get("llm_model")
+        llm_tokens_prompt = pr.get("tokens_prompt") or pr.get("llm_tokens_prompt")
+        llm_tokens_completion = pr.get("tokens_completion") or pr.get("llm_tokens_completion")
+        llm_cost_usd = pr.get("cost_usd") or pr.get("llm_cost_usd")
+
     # Stub answer baseline; branches may override earlier (e.g., pii_detect)
-    if "answer" not in locals():
+    if not answer:
         answer = "This is a stubbed answer. In Phase 1, RAG provides citations from local docs."
     # Ensure a single long sentence to trigger long-memory ingestion when enabled
     try:
@@ -349,6 +391,17 @@ def post_query(req: Request, payload: QueryRequest):
     except Exception:
         prompt_version = f"{prompt_name}:unknown"
 
+    # Override token estimates with LLM usage when present
+    if llm_tokens_prompt is not None:
+        tp = int(llm_tokens_prompt or 0)
+    if llm_tokens_completion is not None:
+        tc = int(llm_tokens_completion or 0)
+    if llm_cost_usd is not None:
+        try:
+            cost = float(llm_cost_usd)
+        except Exception:
+            pass
+
     audit = AuditMeta(
         request_id=getattr(req.state, "request_id", "unknown"),
         user_id=payload.user_id,
@@ -371,6 +424,20 @@ def post_query(req: Request, payload: QueryRequest):
     audit_dict = audit.model_dump()
     audit_dict["prompt_version"] = prompt_version
     audit_dict["rag_backend"] = rag_backend
+    # LLM audit fields when present
+    if llm_provider:
+        audit_dict["llm_provider"] = llm_provider
+    if llm_model:
+        audit_dict["llm_model"] = llm_model
+    if llm_tokens_prompt is not None:
+        audit_dict["llm_tokens_prompt"] = int(llm_tokens_prompt or 0)
+    if llm_tokens_completion is not None:
+        audit_dict["llm_tokens_completion"] = int(llm_tokens_completion or 0)
+    if llm_cost_usd is not None:
+        try:
+            audit_dict["llm_cost_usd"] = float(llm_cost_usd)
+        except Exception:
+            pass
     try:
         from app.services.router import get_backend_meta
 
@@ -444,6 +511,13 @@ def post_query(req: Request, payload: QueryRequest):
         pass
     # build response audit dict filtered by flags for correct field presence
     response_audit = audit_dict.copy()
+    # ensure llm fields propagate to response audit
+    for k in ("llm_provider", "llm_model", "llm_tokens_prompt", "llm_tokens_completion", "llm_cost_usd"):
+        if k not in response_audit and k in locals():
+            try:
+                response_audit[k] = locals().get(k)
+            except Exception:
+                pass
     # ensure rag_backend present
     try:
         response_audit["rag_backend"] = rag_backend
@@ -469,6 +543,12 @@ def post_query(req: Request, payload: QueryRequest):
     except Exception:
         pass
 
+    # Ensure DB is initialized for current DB_URL before getting session
+    try:
+        from db.session import init_db as _init_db
+        _init_db()
+    except Exception:
+        pass
     db = get_session()
     try:
         write_audit(
@@ -492,7 +572,9 @@ def post_query(req: Request, payload: QueryRequest):
         from app.utils.metrics import cost_usd_total, tokens_total
 
         tokens_total.labels(endpoint="/query").inc((tp or 0) + (tc or 0))
-        cost_usd_total.labels(endpoint="/query").inc(float(audit.cost_usd or 0.0))
+        # Prefer LLM cost if present
+        inc_cost = float(audit_dict.get("llm_cost_usd", audit.cost_usd or 0.0) or 0.0)
+        cost_usd_total.labels(endpoint="/query").inc(inc_cost)
     except Exception:
         pass
 

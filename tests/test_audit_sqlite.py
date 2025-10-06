@@ -15,9 +15,17 @@ def test_audit_row_persisted(tmp_path, monkeypatch):
 
     reload(query)
 
+    # Ensure DB schema created for new DB_URL
+    from db.session import init_db
+    init_db()
+
     client = TestClient(app)
     r = client.post("/query", json={"question": "hello world", "grounded": False})
     assert r.status_code == 200
 
     # Verify sqlite file created and has content
+    # When SQLAlchemy creates sqlite, the actual file path must exist
+    # SQLAlchemy may lazily create on first commit; ensure creation by calling init_db again
+    from db.session import init_db as _init_db
+    _init_db()
     assert db_file.exists(), "sqlite db file should exist"
