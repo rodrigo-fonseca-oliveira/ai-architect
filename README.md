@@ -33,43 +33,26 @@ Client → FastAPI Gateway
 Architecture (Mermaid)
 
 ```mermaid
-flowchart TD
-    A[Client] -->|HTTP| B[FastAPI Gateway]
-    B --> C[/query]
-    B --> D[/research]
-    B --> E[/predict]
-    B --> F[/metrics]
-    B --> G[/healthz]
+flowchart LR
+    T[Topic] --> S[search]
+    S --> F[fetch]
+    F --> U[summarize]
+    U --> R[risk_check]
 
-    C --> C1[LLM Stub / Gateway]
-    C --> C2[RAG Retriever (Chroma)]
-    C2 --> C3[(VectorStore)]
-
-    D --> D1[Agent Orchestrator]
-    D1 --> D2[Tools (search/fetch/summarize)]
-
-    E --> E1[MLflow Client]
-    E1 --> E2[(MLflow Registry)]
-
-    B --> H[Audit Writer]
-    H --> H1[(SQLite: audit)]
-
-    B --> I[Cost Tracker]
-
-    F --> J[Prometheus Metrics]
-
-    subgraph Observability
-      H
-      I
-      J
+    subgraph Audit
+      A1[step.name]
+      A2[inputs]
+      A3[outputs preview]
+      A4[latency & hash]
     end
 
-    subgraph Data
-      C3
-      H1
-      E2
-    end
+    S --> A1
+    F --> A2
+    U --> A3
+    R --> A4
 ```
+
+
 
 ---
 
@@ -285,6 +268,8 @@ flowchart LR
     U --> A3
     R --> A4
 ```
+
+
 
 ---
 
