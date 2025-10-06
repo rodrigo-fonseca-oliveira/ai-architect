@@ -48,7 +48,7 @@
           <div class="bubble agent">Hi! Ask about your project setup, policies, or flags. I’ll stream a plan with citations when applicable.</div>
         </div>
         <div class="dock">
-          <label class="toggle"><input id="streamToggle" type="checkbox" checked/> Stream</label>
+          <label class="toggle"><input id="streamToggle" type="checkbox" checked/> Stream <span id="streamingBadge" class="badge" style="display:none;">Streaming…</span></label>
           <textarea id="question" placeholder="E.g., How does the router work? or Adapt this for internal policy review."></textarea>
           <button id="sendBtn">Send</button>
         </div>
@@ -56,10 +56,11 @@
       <div class="col right">
         <div class="inner">
           <div class="section">
-            <span id="groundedBadge" class="badge">grounded: unknown</span>
-            <span id="citationsCount" class="badge">citations: 0</span>
-          </div>
-          <div class="section kvs">
+          <span id="groundedBadge" class="badge">grounded: unknown</span>
+          <span id="citationsCount" class="badge">citations: 0</span>
+          <span id="sidBadge" class="badge">sid: -</span>
+        </div>
+        <div class="section kvs">
             <div class="k">Provider</div><div class="v" id="provider">-</div>
             <div class="k">Model</div><div class="v" id="model">-</div>
             <div class="k">Tokens</div><div class="v" id="tokens">-</div>
@@ -101,19 +102,30 @@
       const featureCta = document.getElementById('featureCta');
       const ghIssue = document.getElementById('ghIssue');
       const copyTemplate = document.getElementById('copyTemplate');
+      const sidBadge = document.getElementById('sidBadge');
 
       // session persistence
-      function getSessionId() {
-        let sid = localStorage.getItem('ai_architect_session_id');
-        if (!sid) {
-          sid = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-          localStorage.setItem('ai_architect_session_id', sid);
+      const SESSION_ID = (() => {
+        try {
+          let sid = localStorage.getItem('ai_architect_session_id');
+          if (!sid) {
+            sid = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            localStorage.setItem('ai_architect_session_id', sid);
+          }
+          return sid;
+        } catch (e) {
+          return 'sess_' + Math.random().toString(36).slice(2);
         }
-        return sid;
-      }
+      })();
+      console.debug('AI Architect SESSION_ID', SESSION_ID);
+      if (sidBadge) sidBadge.textContent = `sid: ${SESSION_ID}`;
+      function getSessionId(){ return SESSION_ID; }
+
+      function updateSendState(){ const n=(qEl.value||'').trim().length; sendBtn.disabled = (n < 3) || isStreaming; }
 
       let turn = parseInt(localStorage.getItem('ai_architect_turn') || '1', 10);
       turnsEl.textContent = String(turn);
+      let isStreaming = false;
 
       function addBubble(text, who='agent') {
         const div = document.createElement('div');
@@ -127,41 +139,106 @@
         return encodeURIComponent(str).replace(/['()]/g, escape).replace(/\*/g, '%2A');
       }
 
-      function startStream(question) {
-        if (!question || question.trim().length < 3) { return; }
-        const es = new EventSource(`/architect/stream?question=&session_id=`);
+      function startStream(question) { console.debug('[AI Architect] startStream() raw=', question);
+        const qq = (question || '').trim(); console.debug('[AI Architect] startStream() qq=', qq, 'sid=', SESSION_ID);
+        if (qq.length < 3) { return; }
+        const sid = encodeURIComponent(SESSION_ID);
+        const qparam = encodeURIComponent(qq);
+        const url = `/architect/stream?question=${qparam}&session_id=${sid}`;
+        console.debug('[AI Architect] EventSource URL =', url);
+        const es = new EventSource(url);
         let summaryParts = [];
+        let summaryQueue = [];
+        let typingTimer = null;
+        let typingCursorOn = false;
         let steps = [];
         let flags = [];
         let citations = [];
         let audit = {};
+        let summaryBubble = null;
+        const streamingBadge = document.getElementById('streamingBadge');
 
         es.addEventListener('meta', (e) => {
           const meta = JSON.parse(e.data);
           providerEl.textContent = meta.provider || '-';
           modelEl.textContent = meta.model || '-';
-          groundedBadge.textContent = `grounded: ${meta.grounded_used ? 'yes' : 'no'}`;
+          groundedBadge.textContent = `grounded: `;
         });
         es.addEventListener('summary', (e) => {
           const s = JSON.parse(e.data);
           summaryParts.push(s);
-          const bubbleText = summaryParts.join(' ');
-          addBubble(bubbleText, 'agent');
+          summaryQueue.push(s + ' ');
+          if (!summaryBubble) {
+            summaryBubble = document.createElement('div');
+            summaryBubble.className = 'bubble agent';
+            summaryBubble.textContent = '';
+            chatEl.appendChild(summaryBubble);
+          }
+          if (!typingTimer) {
+            typingTimer = setInterval(() => {
+              if (!summaryQueue.length) { return; }
+              const chunk = summaryQueue[0];
+              const next = chunk.slice(0, 4); // 4 chars per tick for readability
+              const rest = chunk.slice(4);
+              summaryBubble.textContent += next;
+              if (rest) {
+                summaryQueue[0] = rest;
+              } else {
+                summaryQueue.shift();
+              }
+              chatEl.scrollTop = chatEl.scrollHeight;
+            }, 30);
+          }
+          if (!typingCursorOn) {
+            typingCursorOn = true;
+            const cursor = document.createElement('span');
+            cursor.id = 'typingCursor';
+            cursor.textContent = ' |';
+            cursor.style.opacity = '1';
+            cursor.style.transition = 'opacity .2s';
+            summaryBubble.appendChild(cursor);
+            setInterval(() => {
+              const c = document.getElementById('typingCursor');
+              if (!c) return;
+              c.style.opacity = c.style.opacity === '1' ? '0' : '1';
+            }, 400);
+          }
         });
         es.addEventListener('steps', (e) => {
           steps = JSON.parse(e.data) || [];
-          addBubble(`Steps:\n- ${steps.join('\n- ')}`, 'agent');
+          addBubble(`Steps:\n- `, 'agent');
         });
         es.addEventListener('flags', (e) => {
           flags = JSON.parse(e.data) || [];
-          addBubble(`Flags: ${flags.join(', ')}`, 'agent');
+          addBubble(`Flags: `, 'agent');
         });
         es.addEventListener('citations', (e) => {
           citations = JSON.parse(e.data) || [];
-          citationsCount.textContent = `citations: ${citations.length}`;
+          citationsCount.textContent = `citations: `;
           if (citations.length) {
-            const lines = citations.map(c => `- ${c.title || c.url || JSON.stringify(c)}`);
-            addBubble(`Citations:\n${lines.join('\n')}`, 'agent');
+            const frag = document.createDocumentFragment();
+            const wrap = document.createElement('div');
+            wrap.className = 'bubble agent';
+            const header = document.createElement('div');
+            header.textContent = 'Citations:';
+            wrap.appendChild(header);
+            const ul = document.createElement('ul');
+            ul.style.margin = '6px 0 0 16px';
+            citations.forEach(c => {
+              const li = document.createElement('li');
+              if (c.url) {
+                const a = document.createElement('a');
+                a.href = c.url; a.textContent = c.title || c.url; a.target = '_blank';
+                li.appendChild(a);
+              } else {
+                li.textContent = c.title || JSON.stringify(c);
+              }
+              ul.appendChild(li);
+            });
+            wrap.appendChild(ul);
+            frag.appendChild(wrap);
+            chatEl.appendChild(frag);
+            chatEl.scrollTop = chatEl.scrollHeight;
           }
         });
         es.addEventListener('feature', (e) => {
@@ -169,10 +246,10 @@
           featureCta.style.display = 'block';
           const title = fr.title || 'AI Architect Feature Request';
           const body = fr.body || JSON.stringify(fr, null, 2);
-          const url = `https://github.com/rodrigo-fonseca-oliveira/ai-architect/issues/new?title=${encodeRFC5987ValueChars(title)}&body=${encodeRFC5987ValueChars(body)}`;
+          const url = `https://github.com/rodrigo-fonseca-oliveira/ai-architect/issues/new?title=&body=`;
           ghIssue.href = url;
           copyTemplate.onclick = () => {
-            navigator.clipboard.writeText(`# ${title}\n\n${body}`);
+            navigator.clipboard.writeText(`# \n\n`);
           };
         });
         es.addEventListener('audit', (e) => {
@@ -180,26 +257,34 @@
           auditJsonEl.textContent = JSON.stringify(audit, null, 2);
           const tokens = [audit.llm_tokens_prompt, audit.llm_tokens_completion].filter(x=>x!=null).join(' + ');
           tokensEl.textContent = tokens || '-';
-          costEl.textContent = audit.llm_cost_usd != null ? `$${audit.llm_cost_usd.toFixed ? audit.llm_cost_usd.toFixed(4) : audit.llm_cost_usd}` : '-';
+          costEl.textContent = audit.llm_cost_usd != null ? `${audit.llm_cost_usd.toFixed ? audit.llm_cost_usd.toFixed(4) : audit.llm_cost_usd}` : '-';
           const ragBits = [
-            audit.rag_multi_query ? `multi:${audit.rag_multi_count||'-'}` : null,
+            audit.rag_multi_query ? `multi:` : null,
             audit.rag_hyde ? 'hyde:on' : null,
           ].filter(Boolean);
           ragEl.textContent = ragBits.length ? ragBits.join(', ') : '-';
           es.close();
+          isStreaming = false;
+          if (streamingBadge) streamingBadge.style.display = 'none';
+          updateSendState();
         });
         es.onerror = () => {
           es.close();
+          isStreaming = false;
+          updateSendState();
         };
       }
 
-      function send() {
-        const q = (qEl.value || '').trim();
-        if (q.length < 3) { addBubble('Please enter at least 3 characters.', 'agent'); return; }
+      function send() { console.debug('[AI Architect] send() invoked');
+        const q = (qEl.value || '').trim(); console.debug('[AI Architect] send() q=', q, 'isStreaming=', isStreaming);
+        if (q.length < 3 || isStreaming) { return; }
         addBubble(q, 'user');
         turnsEl.textContent = String(++turn);
         localStorage.setItem('ai_architect_turn', String(turn));
         if (streamToggle.checked) {
+          isStreaming = true;
+          if (streamingBadge) streamingBadge.style.display = 'inline-block';
+          updateSendState();
           startStream(q);
         } else {
           fetch('/architect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ question: q, session_id: getSessionId() }) })
@@ -232,7 +317,7 @@
       }
 
       sendBtn.onclick = send;
-      qEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); });
+      qEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { if (!isStreaming && (qEl.value||'').trim().length >= 3) send(); } });
       function updateSendState(){ const n=(qEl.value||'').trim().length; sendBtn.disabled = n < 3; }
       qEl.addEventListener('input', updateSendState); updateSendState();
     </script>

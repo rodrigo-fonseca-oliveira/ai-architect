@@ -10,11 +10,10 @@ templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/architect/ui", response_class=HTMLResponse, tags=["Architect"])
 def get_ui(request: Request):
-    return templates.TemplateResponse(
-        "architect_form.html",
-        {
-            "request": request,
-            "project_guide_enabled": os.getenv("PROJECT_GUIDE_ENABLED", "").lower()
-            in ("1", "true", "yes", "on"),
-        },
-    )
+    context = {
+        "project_guide_enabled": os.getenv("PROJECT_GUIDE_ENABLED", "").lower() in ("1", "true", "yes", "on"),
+    }
+    resp = templates.TemplateResponse(request, "architect_form.html", context)
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    return resp

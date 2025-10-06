@@ -35,8 +35,15 @@ async def _gen_sse(plan: Dict[str, Any], audit: Dict[str, Any]) -> AsyncGenerato
     yield f"event: audit\ndata: {json.dumps(audit)}\n\n".encode()
 
 @router.get("/architect/stream")
-async def stream_architect(request: Request, question: str = Query(..., min_length=3), session_id: str | None = None, user_id: str | None = None):
-    plan_obj, audit = run_architect_agent(question, session_id=session_id, user_id=user_id)
+async def stream_architect(request: Request, question: str | None = None, session_id: str | None = None, user_id: str | None = None):
+    # Defensive guard: no-op stream for empty/short questions
+    q = (question or "").strip()
+    if len(q) < 3:
+        async def _empty():
+            yield b"event: meta\ndata: {}\n\n"
+        return StreamingResponse(_empty(), media_type="text/event-stream")
+
+    plan_obj, audit = run_architect_agent(q, session_id=session_id, user_id=user_id)
     # Convert plan to dict for streaming
     plan: Dict[str, Any] = plan_obj.model_dump() if hasattr(plan_obj, "model_dump") else dict(plan_obj)
     return StreamingResponse(_gen_sse(plan, audit), media_type="text/event-stream")
