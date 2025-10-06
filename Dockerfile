@@ -1,19 +1,24 @@
 FROM python:3.11-slim
 
-WORKDIR /app
-
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH"
+
+WORKDIR /app
 
 # Install build deps for some libs (pandas, scipy stack minimal)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pip, then install CPU-only PyTorch wheels first, then sentence-transformers
-RUN pip install --no-cache-dir -U pip && \
-    pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio && \
+# Create venv and install pip
+RUN python -m venv $VIRTUAL_ENV && pip install --no-cache-dir -U pip
+
+# Install CPU-only PyTorch wheels first, then sentence-transformers
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio && \
     pip install --no-cache-dir sentence-transformers
 
 # Copy project metadata and install deps
@@ -30,5 +35,10 @@ RUN pip install --no-cache-dir -e .
 # Copy source
 COPY . /app
 
+# Provide default non-secret env by copying example into .env if not present
+RUN [ -f "/app/.env" ] || cp /app/.env.example /app/.env || true
+
 EXPOSE 8000
+
+# Use uvicorn from the venv
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

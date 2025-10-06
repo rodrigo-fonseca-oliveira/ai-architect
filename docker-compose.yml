@@ -7,6 +7,8 @@ services:
       args:
         TORCH_VARIANT: ${TORCH_VARIANT:-cpu}
     container_name: ai-monitor-api
+    env_file:
+      - .env
     environment:
       - APP_ENV=production
       - LOG_LEVEL=INFO
@@ -20,6 +22,8 @@ services:
       # Optional: protect /metrics with a token. If unset or empty, /metrics is open.
       # Set a strong value in production and configure Prometheus to send X-Metrics-Token header.
       - METRICS_TOKEN=${METRICS_TOKEN:-}
+      # Forward OPENAI_API_KEY from host env at runtime (do not store in .env inside image)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     ports:
       - "8000:8000"
     healthcheck:
