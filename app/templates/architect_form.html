@@ -48,7 +48,7 @@
           <div class="bubble agent">Hi! Ask about your project setup, policies, or flags. I’ll stream a plan with citations when applicable.</div>
         </div>
         <div class="dock">
-          <label class="toggle"><input id="streamToggle" type="checkbox" checked/> Stream <span id="streamingBadge" class="badge" style="display:none;">Streaming…</span></label>
+          
           <textarea id="question" placeholder="E.g., How does the router work? or Adapt this for internal policy review."></textarea>
           <button id="sendBtn">Send</button>
         </div>
@@ -87,7 +87,6 @@
       const chatEl = document.getElementById('chat');
       const qEl = document.getElementById('question');
       const sendBtn = document.getElementById('sendBtn');
-      const streamToggle = document.getElementById('streamToggle');
 
       const groundedBadge = document.getElementById('groundedBadge');
       const citationsCount = document.getElementById('citationsCount');
@@ -199,7 +198,7 @@
           }
           // Render steps immediately regardless of summary state
           planStepsEl.style.display = '';
-          planStepsEl.textContent = 'Steps:\n- ' + arr.join('\n- ');
+          planStepsEl.innerHTML = 'Steps:<br>- ' + arr.join('<br>- ');
           // If summary hasn't arrived yet, keep placeholder empty; when summary arrives later, it will be inserted above steps
           stepsQueued = null;
           chatEl.scrollTop = chatEl.scrollHeight;
@@ -226,7 +225,7 @@
           btn.className = 'badge';
           btn.style.marginLeft = '8px';
           const title = document.createElement('span');
-          title.textContent = `Citations ()`;
+          title.textContent = `Citations`;
           const details = document.createElement('div');
           details.style.display = 'none';
           const ul = document.createElement('ul');
@@ -283,7 +282,7 @@
           const cursor = document.getElementById('typingCursor'); if (cursor && cursor.parentElement) cursor.parentElement.removeChild(cursor);
           if (planSummaryEl && planSummaryEl.textContent) { planSummaryEl.textContent = planSummaryEl.textContent.replace(/^\s*\|\s*/, '').trim(); }
           if (typingTimer) { clearInterval(typingTimer); typingTimer = null; }
-          es.close(); isStreaming = false; if (streamingBadge) streamingBadge.style.display = 'none'; updateSendState();
+          es.close(); isStreaming = false; updateSendState();
         });
         es.onerror = () => {
           es.close();
@@ -298,38 +297,8 @@
         addBubble(q, 'user');
         turnsEl.textContent = String(++turn);
         localStorage.setItem('ai_architect_turn', String(turn));
-        if (streamToggle.checked) {
-          isStreaming = true;
-          if (streamingBadge) streamingBadge.style.display = 'inline-block';
-          updateSendState();
-          startStream(q);
-        } else {
-          fetch('/architect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ question: q, session_id: getSessionId() }) })
-            .then(r => r.json())
-            .then(data => {
-              const { audit, suggested_steps, suggested_env_flags, citations } = data || {};
-              if (data && data.answer) addBubble(data.answer, 'agent');
-              if (Array.isArray(suggested_steps) && suggested_steps.length) addBubble(`Steps:\n- ${suggested_steps.join('\n- ')}`, 'agent');
-              if (Array.isArray(suggested_env_flags) && suggested_env_flags.length) addBubble(`Flags: ${suggested_env_flags.join(', ')}`, 'agent');
-              if (Array.isArray(citations) && citations.length) {
-                citationsCount.textContent = `citations: ${citations.length}`;
-              }
-              if (audit) {
-                auditJsonEl.textContent = JSON.stringify(audit, null, 2);
-                providerEl.textContent = audit.llm_provider || '-';
-                modelEl.textContent = audit.llm_model || '-';
-                const tokens = [audit.llm_tokens_prompt, audit.llm_tokens_completion].filter(x=>x!=null).join(' + ');
-                tokensEl.textContent = tokens || '-';
-                costEl.textContent = audit.llm_cost_usd != null ? `$${audit.llm_cost_usd}` : '-';
-                const ragBits = [
-                  audit.rag_multi_query ? `multi:${audit.rag_multi_count||'-'}` : null,
-                  audit.rag_hyde ? 'hyde:on' : null,
-                ].filter(Boolean);
-                ragEl.textContent = ragBits.length ? ragBits.join(', ') : '-';
-              }
-            })
-            .catch(err => addBubble(`Error: ${err}`, 'agent'));
-        }
+        isStreaming = true;        updateSendState();
+        startStream(q);
         qEl.value = '';
       }
 
