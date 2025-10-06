@@ -151,95 +151,112 @@
         let summaryQueue = [];
         let typingTimer = null;
         let typingCursorOn = false;
-        let steps = [];
-        let flags = [];
-        let citations = [];
-        let audit = {};
-        let summaryBubble = null;
+        let stepsQueued = null; // buffer steps until summary starts typing
+        let planBubble = null; // single container for summary+steps
+        let planSummaryEl = null;
+        let planStepsEl = null;
+        let flagsBubble = null;
         const streamingBadge = document.getElementById('streamingBadge');
 
         es.addEventListener('meta', (e) => {
           const meta = JSON.parse(e.data);
           providerEl.textContent = meta.provider || '-';
           modelEl.textContent = meta.model || '-';
-          groundedBadge.textContent = `grounded: `;
+          groundedBadge.textContent = `grounded: ${meta.grounded_used ? 'yes' : 'no'}`;
         });
         es.addEventListener('summary', (e) => {
           const s = JSON.parse(e.data);
-          summaryParts.push(s);
-          summaryQueue.push(s + ' ');
-          if (!summaryBubble) {
-            summaryBubble = document.createElement('div');
-            summaryBubble.className = 'bubble agent';
-            summaryBubble.textContent = '';
-            chatEl.appendChild(summaryBubble);
+          if (!s || (typeof s === 'string' && s.trim().length === 0)) { return; }
+          if (!planBubble) {
+            planBubble = document.createElement('div');
+            planBubble.className = 'bubble agent';
+            planSummaryEl = document.createElement('div');
+            planSummaryEl.className = 'plan-summary';
+            planStepsEl = document.createElement('div');
+            planStepsEl.className = 'plan-steps';
+            planBubble.appendChild(planSummaryEl);
+            planBubble.appendChild(planStepsEl);
+            chatEl.appendChild(planBubble);
           }
-          if (!typingTimer) {
-            typingTimer = setInterval(() => {
-              if (!summaryQueue.length) { return; }
-              const chunk = summaryQueue[0];
-              const next = chunk.slice(0, 4); // 4 chars per tick for readability
-              const rest = chunk.slice(4);
-              summaryBubble.textContent += next;
-              if (rest) {
-                summaryQueue[0] = rest;
-              } else {
-                summaryQueue.shift();
-              }
-              chatEl.scrollTop = chatEl.scrollHeight;
-            }, 30);
-          }
-          if (!typingCursorOn) {
-            typingCursorOn = true;
-            const cursor = document.createElement('span');
-            cursor.id = 'typingCursor';
-            cursor.textContent = ' |';
-            cursor.style.opacity = '1';
-            cursor.style.transition = 'opacity .2s';
-            summaryBubble.appendChild(cursor);
-            setInterval(() => {
-              const c = document.getElementById('typingCursor');
-              if (!c) return;
-              c.style.opacity = c.style.opacity === '1' ? '0' : '1';
-            }, 400);
-          }
+          // Append summary content immediately (no typing effect)
+          planSummaryEl.textContent += (typeof s === 'string' ? s : String(s)) + ' ';
+          chatEl.scrollTop = chatEl.scrollHeight;
         });
         es.addEventListener('steps', (e) => {
-          steps = JSON.parse(e.data) || [];
-          addBubble(`Steps:\n- `, 'agent');
+          const arr = JSON.parse(e.data) || [];
+          if (!arr || arr.length === 0) return;
+          // Ensure plan bubble exists
+          if (!planBubble) {
+            planBubble = document.createElement('div');
+            planBubble.className = 'bubble agent';
+            planSummaryEl = document.createElement('div');
+            planSummaryEl.className = 'plan-summary';
+            planStepsEl = document.createElement('div');
+            planStepsEl.className = 'plan-steps';
+            planBubble.appendChild(planSummaryEl);
+            planBubble.appendChild(planStepsEl);
+            chatEl.appendChild(planBubble);
+          }
+          // Render steps immediately regardless of summary state
+          planStepsEl.style.display = '';
+          planStepsEl.textContent = 'Steps:\n- ' + arr.join('\n- ');
+          // If summary hasn't arrived yet, keep placeholder empty; when summary arrives later, it will be inserted above steps
+          stepsQueued = null;
+          chatEl.scrollTop = chatEl.scrollHeight;
         });
         es.addEventListener('flags', (e) => {
-          flags = JSON.parse(e.data) || [];
-          addBubble(`Flags: `, 'agent');
+          const arr = JSON.parse(e.data) || [];
+          if (!flagsBubble) {
+            flagsBubble = document.createElement('div');
+            flagsBubble.className = 'bubble agent';
+            chatEl.appendChild(flagsBubble);
+          }
+          flagsBubble.textContent = 'Flags: ' + arr.join(', ');
+          chatEl.scrollTop = chatEl.scrollHeight;
         });
         es.addEventListener('citations', (e) => {
-          citations = JSON.parse(e.data) || [];
+          const citations = JSON.parse(e.data) || [];
           citationsCount.textContent = `citations: `;
-          if (citations.length) {
-            const frag = document.createDocumentFragment();
-            const wrap = document.createElement('div');
-            wrap.className = 'bubble agent';
-            const header = document.createElement('div');
-            header.textContent = 'Citations:';
-            wrap.appendChild(header);
-            const ul = document.createElement('ul');
-            ul.style.margin = '6px 0 0 16px';
-            citations.forEach(c => {
-              const li = document.createElement('li');
-              if (c.url) {
-                const a = document.createElement('a');
-                a.href = c.url; a.textContent = c.title || c.url; a.target = '_blank';
-                li.appendChild(a);
-              } else {
-                li.textContent = c.title || JSON.stringify(c);
-              }
-              ul.appendChild(li);
-            });
-            wrap.appendChild(ul);
-            frag.appendChild(wrap);
-            chatEl.appendChild(frag);
-            chatEl.scrollTop = chatEl.scrollHeight;
-          }
+          if (!citations.length) return;
+          const wrap = document.createElement('div');
+          wrap.className = 'bubble agent';
+          const header = document.createElement('div');
+          const btn = document.createElement('button');
+          btn.textContent = 'Show';
+          btn.className = 'badge';
+          btn.style.marginLeft = '8px';
+          const title = document.createElement('span');
+          title.textContent = `Citations ()`;
+          const details = document.createElement('div');
+          details.style.display = 'none';
+          const ul = document.createElement('ul');
+          ul.style.margin = '6px 0 0 16px';
+          citations.forEach(c => {
+            const li = document.createElement('li');
+            let host = '';
+            try { if (c.url) host = new URL(c.url).hostname; } catch {}
+            if (c.url) {
+              const a = document.createElement('a');
+              a.href = c.url; a.textContent = c.title || c.url; a.target = '_blank';
+              li.appendChild(a);
+              if (host) { const h = document.createElement('span'); h.textContent = ` ()`; h.style.color = '#9aa4b2'; h.style.marginLeft = '4px'; li.appendChild(h); }
+            } else {
+              li.textContent = c.title || JSON.stringify(c);
+            }
+            ul.appendChild(li);
+          });
+          details.appendChild(ul);
+          btn.onclick = () => {
+            const show = details.style.display === 'none';
+            details.style.display = show ? '' : 'none';
+            btn.textContent = show ? 'Hide' : 'Show';
+          };
+          header.appendChild(title);
+          header.appendChild(btn);
+          wrap.appendChild(header);
+          wrap.appendChild(details);
+          chatEl.appendChild(wrap);
+          chatEl.scrollTop = chatEl.scrollHeight;
         });
         es.addEventListener('feature', (e) => {
           const fr = JSON.parse(e.data);
@@ -263,10 +280,10 @@
             audit.rag_hyde ? 'hyde:on' : null,
           ].filter(Boolean);
           ragEl.textContent = ragBits.length ? ragBits.join(', ') : '-';
-          es.close();
-          isStreaming = false;
-          if (streamingBadge) streamingBadge.style.display = 'none';
-          updateSendState();
+          const cursor = document.getElementById('typingCursor'); if (cursor && cursor.parentElement) cursor.parentElement.removeChild(cursor);
+          if (planSummaryEl && planSummaryEl.textContent) { planSummaryEl.textContent = planSummaryEl.textContent.replace(/^\s*\|\s*/, '').trim(); }
+          if (typingTimer) { clearInterval(typingTimer); typingTimer = null; }
+          es.close(); isStreaming = false; if (streamingBadge) streamingBadge.style.display = 'none'; updateSendState();
         });
         es.onerror = () => {
           es.close();
