@@ -1,28 +1,35 @@
 
 # AI Architect
 
-> A minimal reference platform for **safe, observable, and cost-aware** AI.
-> FastAPI gateway with audit logs, token/cost tracking, drift checks, and modular endpoints for **LLM (RAG)**, **Agent pipeline**, and **ML model serving** (MLflow).
+> Architect-first OSS experience for designing and operating safe, observable, and cost-aware AI.
+> Primary experience: Architect agent with dynamic grounding, structured plans, and progressive streaming.
 
 ---
-
-> Formerly known as ai-risk-monitor; code paths and APIs keep backward compatibility. UI/README are branded as AI Architect.
 
 ![Hero](docs/images/hero.png)
 
-## Overview
+## What is AI Architect
 
-Enterprises adopting GenAI need **traceability, governance, and cost visibility** before they scale. This project wraps AI calls with a lightweight **monitoring & compliance layer** and exposes production-ready patterns:
+AI Architect is a lightweight, open-source reference architecture for designing and operating safe, observable, and cost-aware AI systems. It blends a hands-on learning experience with a production-minded blueprint.
 
-* LLM/RAG Q&A with grounding and **citations**
-* **Agentic** multi-step pipeline with tool auditing
-* **ML training/serving** with MLflow + drift checks
-* **FinOps**: token & cost tracking, `/metrics`
-* **Auditability**: request/response hashes, denylist flags, retention
+Community-driven vision
+- Learn: explore real code and best practices for AI architecture end-to-end.
+- Architect: interact with the Architect agent to get guidance, brainstorm approaches, and map ideas to implementation steps.
+- Evolve: as you chat, the agent may propose feature ideas that align with the project’s vision; contribute by opening issues and PRs.
+
+> Careful with the Architect agent—it has a habit of turning brainstorms into to-do lists.
+
+Highlights
+- Grounded Q&A with citations (deterministic by default in tests)
+- Agentic pipelines with tool auditing and request-level audit rows
+- ML lifecycle examples with MLflow + drift checks
+- FinOps metrics (tokens, cost) exposed at /metrics
+
+For deeper topics (API, RAG, memory, security, MLOps), see docs/README.md.
 
 ---
 
-## Architecture (high level)
+## Quickstart
 
 ```
 Client → FastAPI Gateway
@@ -60,7 +67,7 @@ flowchart LR
 
 ---
 
-## Quick start
+## Quickstart
 
 ```bash
 # 0) Clone & env
@@ -73,9 +80,8 @@ python3 -m venv .venv
 . .venv/bin/activate
 pip install -e .
 
-# 2) Ingest docs for RAG (Phase 1)
-# Place a few .txt/.md (and now .pdf) files under DOCS_PATH (see .env). Example:
-# A tiny sample is already included: examples/gdpr.txt and examples/gdpr.pdf
+# 2) (Optional) Ingest docs for RAG (LangChain mode)
+# Place .md/.txt/.pdf files under DOCS_PATH; sample: examples/gdpr.txt and examples/gdpr.pdf
 python scripts/ingest_docs.py
 
 # 3) Run locally
@@ -96,77 +102,33 @@ curl -X POST localhost:8000/query \
 curl localhost:8000/metrics | sed -n '1,80p'
 ```
 
-### Architect + Query + Research UI
+### Architect UI
 
-- Unified UI at http://localhost:8000/ui with tabs: Architect, Query, Research
-- Legacy Architect-only UI remains at /architect/ui
+- Unified UI at http://localhost:8000/ui (Architect-first).
 
-### Architect mode (Guide + Brainstorm)
+### Architect mode
 
-- Enable feature: export PROJECT_GUIDE_ENABLED=true
-- Ensure corpus: export DOCS_PATH=/docs (docs/ and docs/README.md included)
-- API usage:
-  - Guide (grounded with citations):
-    curl -sS -X POST localhost:8000/architect -H 'Content-Type: application/json' -H 'X-User-Role: analyst' -d '{"question":"How does the router work?","mode":"guide"}' | jq .
-  - Brainstorm (citations optional):
-    curl -sS -X POST localhost:8000/architect -H 'Content-Type: application/json' -d '{"question":"Adapt for internal policy review","mode":"brainstorm"}' | jq .
-- UI:
-  - Open http://localhost:8000/ui
+- Dynamic grounding; no explicit mode required.
+- For the Project Guide feature set and behavior, see docs/project_guide_rag.md.
+- UI: open http://localhost:8000/ui
 
-## Repository layout
+## Learn more
 
-```
-ai-risk-monitor/
-  README.md
-  LICENSE
-  architecture/
-    ai_monitor_diagram.png
-  app/
-    main.py
-    routers/
-      query.py        # /query  (LLM + RAG)
-      research.py     # /research (agent)
-      predict.py      # /predict (MLflow)
-      metrics.py      # /metrics, /healthz
-    services/
-      llm_gateway.py
-      rag_retriever.py
-      agent.py
-      mlflow_client.py
-    utils/
-      logger.py       # JSON logs + req_id
-      audit.py        # hash inputs/outputs, write audit row
-      cost.py         # token & $ estimation
-      rbac.py         # placeholder role checks
-    schemas/
-      query.py
-      research.py
-      predict.py
-  db/
-    models.py         # SQLAlchemy models
-    session.py
-    migrations/       # (optional) alembic
-  ml/
-    data/             # synthetic or downloaded
-    train.py          # logs to MLflow
-    evaluate.py
-    drift.py          # PSI/KS checks
-    registry.md       # how to use MLflow registry
-  prompts/
-    query.yaml        # versioned prompt templates
-    research.yaml
-  tests/
-    test_query.py
-    test_audit.py
-    test_predict.py
-  .github/workflows/
-    ci.yml            # lint + tests + (optional) fast train
-  .env.example
-```
+See docs/README.md for the full documentation index. Useful deep links:
+- docs/api.md — endpoints and schemas
+- docs/rag.md — retrieval config and ingestion
+- docs/rag_vector_backends.md — vector backends roadmap
+- docs/architecture_index.md — system overview and file map
+- docs/observability.md — metrics and dashboards
+- docs/security.md — RBAC, PII, retention
+- docs/mlops_plan.md — ML lifecycle plan
+- docs/getting_started.md — this quickstart in more detail
 
 ---
 
-## Endpoints (summary)
+<!-- Details moved to docs/api.md; keep README high-level. -->
+
+## Screenshots
 
 * `POST /query`
   Input: `{ question: str, grounded?: bool }`
@@ -223,7 +185,9 @@ ai-risk-monitor/
 
 ---
 
-## Observability, audit, and cost
+<!-- Deep details moved to docs/observability.md and docs/security.md. -->
+
+## Observability and security (at a glance)
 
 * **Structured JSON logs** with `request_id` (propagated)
 * **Audit DB row** per request: timestamps, role, prompt/resp hashes, flags
@@ -238,7 +202,9 @@ ai-risk-monitor/
 
 ---
 
-## ML lifecycle (MLflow)
+<!-- ML details moved to docs/ml.md and docs/mlops_plan.md. -->
+
+## ML lifecycle (at a glance)
 
 * `ml/train.py` trains a tiny model (e.g., churn) → logs params/metrics/artifacts
 * Register best model → served by `/predict` via `mlflow_client.py`
@@ -246,7 +212,9 @@ ai-risk-monitor/
 
 ---
 
-## Agentic pipeline
+<!-- Agent details moved to docs/agents.md. -->
+
+## Agentic pipeline (at a glance)
 
 * Deterministic steps: `search → fetch → summarize → risk_check`
 * **Tool calls audited** (name, args, latency, result hash)
@@ -277,7 +245,7 @@ flowchart LR
 
 ---
 
-## Security and governance
+## Security and governance (at a glance)
 
 ### PII configuration
 - Environment variables:
@@ -532,17 +500,29 @@ uvicorn app.main:app --reload
 
 ## Tech stack
 
-Note: See docs/project_guide_rag.md for the upcoming “Project Guide RAG and Solution Architect Mode” plan.
+Note: See docs/README.md for deep dives on API, RAG, agents, and MLOps.
 
-* **API**: FastAPI, Pydantic, Uvicorn
-* **LLM/RAG**: Local stub → (optionally) OpenAI/Azure/OpenRouter + FAISS/Chroma
-* **Agent**: simple orchestrator, `requests` for web fetch
-* **ML**: scikit-learn, MLflow
-* **DB**: SQLite (swap to Postgres)
-* **Obs**: JSON logs + Prometheus `/metrics`
-* **CI**: GitHub Actions; lint + tests + (optional) fast train
+- **API**: FastAPI, Pydantic, Uvicorn
+- **Web/UI**: Jinja2 templates, vanilla JS (SSE for streaming)
+- **LLM/RAG**: Deterministic retriever (default) or LangChain + Chroma; optional hosted providers via EMBEDDINGS_PROVIDER
+- **Agents**: Structured Architect agent; Policy Navigator; PII Remediation; Router (rules-based)
+- **ML**: scikit-learn, MLflow (local), drift checks (PSI/KS)
+- **Data/DB**: SQLite (local) with SQLAlchemy; optional Postgres
+- **Observability**: JSON logs, Prometheus /metrics, Grafana dashboard (provisioned)
+- **Testing**: Pytest with deterministic defaults
+- **CI**: GitHub Actions (lint, tests, tiny train + drift check)
+- **Packaging/Dev**: Makefile targets; Dockerfiles; optional docker-compose for Prometheus/Grafana
 
 ---
+
+## Contributing
+
+We grow this reference architecture with the community.
+- Start by chatting with the Architect agent. When it proposes a feature aligned with the vision, you can copy its plan into a GitHub issue.
+- See CONTRIBUTING.md for guidelines and a quick checklist.
+- Docs to consult when shaping proposals: docs/ai-architect-launch.md, docs/rag.md, docs/agents.md, docs/router.md.
+
+Prefer a template? Try the prompts in docs/llm_agent_streaming_prompts.md to generate an issue-ready title/body.
 
 ## License
 

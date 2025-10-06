@@ -11,11 +11,11 @@ Scope: Architect-first OSS launch with engaging chat UI, structured agent, and s
 - Lightweight feature request flow via prefilled GitHub issues.
 
 ## Cut-off for Today (Must Have)
-- Architect-only focus in README and UI (Query/Research not surfaced in UI; APIs remain for tests).
-- Structured Architect Agent with dynamic grounding (no guide|brainstorm modes).
+- Architect-first focus in README and UI; deeper details moved to docs/.
+- Structured Architect Agent with dynamic grounding.
 - SSE streaming endpoint for Architect and a chat UI that consumes it.
 - Friendly agent tone, grounded badge, and feature request CTA (prefilled GitHub issue link).
-- README hero image and branding updates.
+- README hero image and branding updates aligned with docs/.
 
 ## Backend Changes
 - ArchitectPlan (pydantic)
@@ -35,7 +35,7 @@ Scope: Architect-first OSS launch with engaging chat UI, structured agent, and s
   - Left: chat (agent/user bubbles, initial agent greeting, input dock at bottom).
   - Right: stats & debug (grounded chip, citation count, tokens/cost, audit JSON collapsible, RAG flags).
 - Streaming: EventSource to /architect/stream; render chunks progressively.
-- Feature CTA: Create GitHub Issue (prefilled) and Copy Template button.
+- Feature CTA: Create GitHub Issue (prefilled) and Copy Template button. Feature proposals can originate from the Architect agent when gaps are detected; encourage users to submit issues and PRs.
 - No mode selector; no grounded toggle.
 
 ## Streaming (SSE) Contract
@@ -50,15 +50,15 @@ Scope: Architect-first OSS launch with engaging chat UI, structured agent, and s
   - event: audit → full audit dict
 
 ## GitHub Issue CTA (MVP)
-- Repo: rodrigo-fonseca-oliveira/ai-architect
+- Repo: rodrigo-fonseca-oliveira/ai-architect (or update to this repo if preferred)
 - Link template: https://github.com/rodrigo-fonseca-oliveira/ai-architect/issues/new?title=<encoded>&body=<encoded>
 - Include summary, steps, flags, and user question in body.
 - OAuth/device flow deferred post-launch.
 
 ## Branding and README
 - Title: AI Architect
-- Hero image at top (architecture/hero.png)
-- Focus on Architect experience; move Query/Research details to docs/ as needed.
+- Hero image at top (docs/images/hero.png)
+- Root README is high-level; detailed topics live under docs/ and are linked prominently.
 
 ## Post-launch Backlog (Nice to Have)
 - True server-side conversational memory for Architect (short summary of prior turns to agent).
@@ -73,10 +73,10 @@ Scope: Architect-first OSS launch with engaging chat UI, structured agent, and s
 - [x] Dynamic grounding; drop explicit modes
 - [x] Extend plan schema (suggest_feature, feature_request, tone_hint)
 - [x] SSE endpoint implemented and wired
-- [ ] Architect UI chat (left pane) + stats (right pane)
-- [ ] Streaming UI logic (EventSource)
+- [x] Architect UI chat (left pane) + stats (right pane)
+- [x] Streaming UI logic (EventSource)
+- [x] README: hero image + branding updates
 - [ ] Feature CTA with prefilled GitHub issue link
-- [ ] README: hero image + branding updates
 
 ## Notes
 - Keep tests green by leaving POST /architect behavior/stability intact.

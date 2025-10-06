@@ -1,5 +1,10 @@
 # Agents
 
+Architect agent and community loop
+- The Architect agent can propose features when it detects gaps between a user goal and current capabilities (e.g., a new endpoint or a router rule).
+- Users can copy the proposal (summary, steps, flags) into a GitHub issue; see docs/llm_agent_streaming_prompts.md for a ready-to-use prompt set.
+- This closes the loop between learning, brainstorming, and contribution, keeping the repo a living reference architecture.
+
 ## Policy Navigator Agent
 
 - Endpoint: POST /policy_navigator (analyst/admin)
