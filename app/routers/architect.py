@@ -19,8 +19,7 @@ router = APIRouter()
 
 class ArchitectRequest(BaseModel):
     question: str = Field(..., min_length=3)
-    mode: str = Field("guide", pattern=r"^(guide|brainstorm)$", description="guide|brainstorm")
-    grounded: Optional[bool] = Field(None, description="force retrieval from docs")
+    grounded: Optional[bool] = Field(None, description="force retrieval from docs; when None, decide dynamically")
     user_id: Optional[str] = None
     session_id: Optional[str] = None
 
@@ -31,6 +30,8 @@ class ArchitectResponse(BaseModel):
     suggested_steps: List[str] = []
     suggested_env_flags: List[str] = []
     audit: Dict[str, Any]
+    suggest_feature: Optional[bool] = None
+    feature_request: Optional[Dict[str, Any]] = None
 
 
 @router.post("/architect", response_model=ArchitectResponse, tags=["Architect"])
@@ -41,17 +42,16 @@ def post_architect(request: Request, payload: ArchitectRequest):
 
     role = parse_role(request)
 
-    # enforce grounded for guide mode
-    if payload.mode == "guide":
-        payload.grounded = True
-        if not is_allowed_grounded_query(role):
-            raise HTTPException(status_code=403, detail="grounded query not allowed")
+    # Decide grounded dynamically when not provided
+    if payload.grounded is None:
+        # Simple heuristic: treat design/setup/config questions as grounded candidates
+        lower_q = (payload.question or "").lower()
+        payload.grounded = any(w in lower_q for w in ("gdpr", "policy", "config", "setup", "flag", "env", "compliance", "docs"))
     else:
-        # default to False if not provided
-        payload.grounded = bool(payload.grounded) if payload.grounded is not None else False
+        payload.grounded = bool(payload.grounded)
 
     # load prompt metadata for auditing
-    prompt_name = "project_guide" if payload.mode == "guide" else "project_guide_brainstorm"
+    prompt_name = "project_guide"
     try:
         prompt_meta = load_prompt(prompt_name)
         prompt_ver = f"{prompt_name}:{prompt_meta['version']}"
@@ -93,6 +93,9 @@ def post_architect(request: Request, payload: ArchitectRequest):
             steps = list(plan.suggested_steps or [])
             flags = list(plan.suggested_env_flags or [])
             summary = str(getattr(plan, "summary", "") or "")
+            # Feature request passthrough (optional polish)
+            suggest_feature = getattr(plan, "suggest_feature", None)
+            feature_request = getattr(plan, "feature_request", None)
             # LLM audit fields
             llm_provider = agent_audit.get("llm_provider")
             llm_model = agent_audit.get("llm_model")
@@ -109,48 +112,30 @@ def post_architect(request: Request, payload: ArchitectRequest):
         steps, flags, summary = [], [], ""
 
     # Deterministic fallback or completion of missing fields
-    if payload.mode == "guide":
-        # Only fill defaults when LLM is disabled or produced nothing
-        if not summary:
-            summary = (
-                f"Found {len(citations)} citations; see references below." if citations else "No direct citations found; here's an overview."
-            )
-        if (not steps) and not llm_enabled:
-            steps = [
-                "Use the /query endpoint with grounded=true to ask targeted questions.",
-                "Explore the docs/ folder and README.md for deep dives on each component.",
-                "Set PROJECT_GUIDE_ENABLED=true in your env to enable Architect mode.",
-            ]
-        if (not flags) and not llm_enabled:
-            flags = [
-                "PROJECT_GUIDE_ENABLED",
-                "DOCS_PATH",
-                "ROUTER_ENABLED",
-                "MEMORY_SHORT_ENABLED",
-                "MEMORY_LONG_ENABLED",
-            ]
-    else:
-        # Brainstorm mode: if LLM produced nothing useful, keep lists but ensure keys exist
-        if not steps:
-            router_files = [
-                f.stem
-                for f in Path("app/routers").glob("*.py")
-                if f.name not in ("__init__.py", "architect.py")
-            ]
-            steps = [
-                "Map your business use case to existing endpoints/services:",
-                *[f"  •  /{name.replace('_router', '')}" for name in router_files],
-                "Outline components to customize, flags to toggle, and files to update.",
-            ] if not llm_enabled else []
-        if not flags:
-            flags = [
-                "PROJECT_GUIDE_ENABLED",
-                "RAG_MULTI_QUERY_ENABLED",
-                "RAG_MULTI_QUERY_COUNT",
-                "RAG_HYDE_ENABLED",
-            ] if not llm_enabled else []
-        if not summary:
-            summary = "Brainstorming suggestions based on available service endpoints."
+    # Dynamic completion of missing fields
+    if not summary:
+        summary = (
+            f"Found {len(citations)} citations; see references below." if citations else "No direct citations found; here's an overview."
+        )
+    if not steps:
+        router_files = [
+            f.stem
+            for f in Path("app/routers").glob("*.py")
+            if f.name not in ("__init__.py", "architect.py")
+        ]
+        steps = steps or [
+            "Map your business use case to existing endpoints/services:",
+            *[f"  •  /{name.replace('_router', '')}" for name in router_files],
+            "Outline components to customize, flags to toggle, and files to update.",
+        ]
+    if not flags:
+        flags = flags or [
+            "PROJECT_GUIDE_ENABLED",
+            "RAG_MULTI_QUERY_ENABLED",
+            "RAG_MULTI_QUERY_COUNT",
+            "RAG_HYDE_ENABLED",
+        ]
+
 
     # Normalize to always-present list/string types for response keys
     if not isinstance(steps, list):
@@ -225,4 +210,6 @@ def post_architect(request: Request, payload: ArchitectRequest):
         suggested_steps=steps,
         suggested_env_flags=flags,
         audit=audit,
+        suggest_feature=locals().get('suggest_feature'),
+        feature_request=locals().get('feature_request'),
     )

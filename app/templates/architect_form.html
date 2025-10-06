@@ -2,62 +2,220 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Architect UI</title>
+    <title>AI Architect</title>
     <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 2rem; }
-      .card { max-width: 800px; padding: 1.5rem; border: 1px solid #ddd; border-radius: 8px; }
-      label { display: block; margin-top: 1rem; font-weight: 600; }
-      textarea { width: 100%; height: 120px; }
-      select, input[type="checkbox"] { margin-top: .5rem; }
-      button { margin-top: 1rem; padding: .6rem 1rem; }
-      .flag { color: #666; font-size: .9rem; }
+      :root { --bg:#0b0f14; --card:#121821; --muted:#9aa4b2; --accent:#2dd4bf; --border:#223045; }
+      * { box-sizing: border-box; }
+      body { margin:0; background: var(--bg); color:#e5e7eb; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+      header { padding: 1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:.75rem; }
+      header .brand { font-weight:700; letter-spacing:.3px; }
+      header .badge { font-size:.8rem; color: var(--muted); }
+      main { display:grid; grid-template-columns: 1.2fr .8fr; gap:1px; height: calc(100vh - 60px); }
+      .col { height:100%; }
+      .left { display:flex; flex-direction:column; }
+      .chat { flex:1; overflow:auto; padding: 1rem; }
+      .bubble { max-width: 80%; padding: .75rem .9rem; margin: .5rem 0; border:1px solid var(--border); border-radius:12px; background:#0e141d; }
+      .bubble.agent { background:#0f172a; border-color:#1f2a44; }
+      .bubble.user { background:#111827; margin-left:auto; border-color:#263142; }
+      .dock { border-top:1px solid var(--border); padding:.75rem; display:flex; gap:.5rem; background:#0e131a; }
+      .dock textarea { flex:1; background:#0b1118; color:#e5e7eb; border:1px solid var(--border); border-radius:8px; padding:.6rem .7rem; resize:vertical; min-height:60px; }
+      .dock button { background: var(--accent); color:#0b0f14; border:none; border-radius:8px; padding:.6rem .9rem; font-weight:600; cursor:pointer; }
+      .dock .toggle { display:flex; align-items:center; gap:.4rem; color:var(--muted); }
+      .right { background:#0e131a; border-left:1px solid var(--border); padding:1rem; overflow:auto; }
+      .kvs { display:grid; grid-template-columns: .9fr 1.1fr; gap:.5rem .75rem; font-size:.95rem; }
+      .k { color:var(--muted); }
+      .v code { background:#0b1118; padding:.2rem .35rem; border-radius:4px; border:1px solid var(--border); }
+      .section { margin:.75rem 0 1rem; }
+      .badge { display:inline-block; padding:.15rem .5rem; border:1px solid var(--border); border-radius:999px; font-size:.8rem; color:var(--muted); }
+      details { border:1px solid var(--border); border-radius:8px; }
+      summary { padding:.5rem .75rem; cursor:pointer; color:var(--muted); }
+      pre { margin:0; padding: .75rem; overflow:auto; background:#0b1118; border-top:1px solid var(--border); white-space:pre-wrap; word-wrap:break-word; }
+      a.cta { display:inline-block; margin-right:.5rem; margin-top:.5rem; }
     </style>
   </head>
   <body>
-    <div class="card">
-      <h1>Architect</h1>
+    <header>
+      <div class="brand">AI Architect</div>
       {% if not project_guide_enabled %}
-        <p class="flag">Note: PROJECT_GUIDE_ENABLED is not set. The API endpoint will return 404 until you export PROJECT_GUIDE_ENABLED=true.</p>
+        <span class="badge">PROJECT_GUIDE_ENABLED=false (API 404)</span>
       {% endif %}
-      <form method="post" action="/architect/ui">
-        <label>Question</label>
-        <textarea name="question" placeholder="E.g., How does the router work? or Adapt this for internal policy review."></textarea>
-
-        <label>Mode</label>
-        <select name="mode" id="mode" onchange="toggleGrounded()">
-          {% for m in modes %}
-            <option value="{{m}}">{{m}}</option>
-          {% endfor %}
-        </select>
-
-        <div id="groundedRow">
-          <label>Grounded (citations)</label>
-          <input type="checkbox" name="grounded" checked disabled />
-          <div class="flag">Guide mode forces grounded with citations.</div>
+    </header>
+    <main>
+      <div class="col left">
+        <div id="chat" class="chat">
+          <div class="bubble agent">Hi! Ask about your project setup, policies, or flags. I’ll stream a plan with citations when applicable.</div>
         </div>
-
-        <button type="submit">Ask</button>
-      </form>
-    </div>
+        <div class="dock">
+          <label class="toggle"><input id="streamToggle" type="checkbox" checked/> Stream</label>
+          <textarea id="question" placeholder="E.g., How does the router work? or Adapt this for internal policy review."></textarea>
+          <button id="sendBtn">Send</button>
+        </div>
+      </div>
+      <div class="col right">
+        <div class="section">
+          <span id="groundedBadge" class="badge">grounded: unknown</span>
+          <span id="citationsCount" class="badge">citations: 0</span>
+        </div>
+        <div class="section kvs">
+          <div class="k">Provider</div><div class="v" id="provider">-</div>
+          <div class="k">Model</div><div class="v" id="model">-</div>
+          <div class="k">Tokens</div><div class="v" id="tokens">-</div>
+          <div class="k">Cost</div><div class="v" id="cost">-</div>
+          <div class="k">RAG</div><div class="v" id="rag">-</div>
+          <div class="k">Turns</div><div class="v" id="turns">1</div>
+        </div>
+        <div class="section">
+          <details>
+            <summary>Audit JSON</summary>
+            <pre id="auditJson">{}</pre>
+          </details>
+        </div>
+        <div class="section" id="featureCta" style="display:none;">
+          <div>Want this as a feature? Create a GitHub Issue or copy a template.</div>
+          <a id="ghIssue" class="cta badge" href="#" target="_blank">Create GitHub Issue</a>
+          <button id="copyTemplate" class="cta">Copy Template</button>
+        </div>
+      </div>
+    </main>
 
     <script>
-      function toggleGrounded() {
-        const mode = document.getElementById('mode').value;
-        const row = document.getElementById('groundedRow');
-        if (mode === 'brainstorm') {
-          row.innerHTML = `
-            <label>Grounded (citations)</label>
-            <input type="checkbox" name="grounded" />
-            <div class="flag">Optional in brainstorm mode.</div>
-          `;
-        } else {
-          row.innerHTML = `
-            <label>Grounded (citations)</label>
-            <input type="checkbox" name="grounded" checked disabled />
-            <div class="flag">Guide mode forces grounded with citations.</div>
-          `;
-        }
+      const chatEl = document.getElementById('chat');
+      const qEl = document.getElementById('question');
+      const sendBtn = document.getElementById('sendBtn');
+      const streamToggle = document.getElementById('streamToggle');
+
+      const groundedBadge = document.getElementById('groundedBadge');
+      const citationsCount = document.getElementById('citationsCount');
+      const providerEl = document.getElementById('provider');
+      const modelEl = document.getElementById('model');
+      const tokensEl = document.getElementById('tokens');
+      const costEl = document.getElementById('cost');
+      const ragEl = document.getElementById('rag');
+      const turnsEl = document.getElementById('turns');
+      const auditJsonEl = document.getElementById('auditJson');
+
+      const featureCta = document.getElementById('featureCta');
+      const ghIssue = document.getElementById('ghIssue');
+      const copyTemplate = document.getElementById('copyTemplate');
+
+      let turn = 1;
+
+      function addBubble(text, who='agent') {
+        const div = document.createElement('div');
+        div.className = `bubble ${who}`;
+        div.textContent = text;
+        chatEl.appendChild(div);
+        chatEl.scrollTop = chatEl.scrollHeight;
       }
+
+      function encodeRFC5987ValueChars(str) {
+        return encodeURIComponent(str).replace(/['()]/g, escape).replace(/\*/g, '%2A');
+      }
+
+      function startStream(question) {
+        const es = new EventSource(`/architect/stream?question=${encodeURIComponent(question)}`);
+        let summaryParts = [];
+        let steps = [];
+        let flags = [];
+        let citations = [];
+        let audit = {};
+
+        es.addEventListener('meta', (e) => {
+          const meta = JSON.parse(e.data);
+          providerEl.textContent = meta.provider || '-';
+          modelEl.textContent = meta.model || '-';
+          groundedBadge.textContent = `grounded: ${meta.grounded_used ? 'yes' : 'no'}`;
+        });
+        es.addEventListener('summary', (e) => {
+          const s = JSON.parse(e.data);
+          summaryParts.push(s);
+          const bubbleText = summaryParts.join(' ');
+          addBubble(bubbleText, 'agent');
+        });
+        es.addEventListener('steps', (e) => {
+          steps = JSON.parse(e.data) || [];
+          addBubble(`Steps:\n- ${steps.join('\n- ')}`, 'agent');
+        });
+        es.addEventListener('flags', (e) => {
+          flags = JSON.parse(e.data) || [];
+          addBubble(`Flags: ${flags.join(', ')}`, 'agent');
+        });
+        es.addEventListener('citations', (e) => {
+          citations = JSON.parse(e.data) || [];
+          citationsCount.textContent = `citations: ${citations.length}`;
+          if (citations.length) {
+            const lines = citations.map(c => `- ${c.title || c.url || JSON.stringify(c)}`);
+            addBubble(`Citations:\n${lines.join('\n')}`, 'agent');
+          }
+        });
+        es.addEventListener('feature', (e) => {
+          const fr = JSON.parse(e.data);
+          featureCta.style.display = 'block';
+          const title = fr.title || 'AI Architect Feature Request';
+          const body = fr.body || JSON.stringify(fr, null, 2);
+          const url = `https://github.com/rodrigo-fonseca-oliveira/ai-architect/issues/new?title=${encodeRFC5987ValueChars(title)}&body=${encodeRFC5987ValueChars(body)}`;
+          ghIssue.href = url;
+          copyTemplate.onclick = () => {
+            navigator.clipboard.writeText(`# ${title}\n\n${body}`);
+          };
+        });
+        es.addEventListener('audit', (e) => {
+          audit = JSON.parse(e.data);
+          auditJsonEl.textContent = JSON.stringify(audit, null, 2);
+          const tokens = [audit.llm_tokens_prompt, audit.llm_tokens_completion].filter(x=>x!=null).join(' + ');
+          tokensEl.textContent = tokens || '-';
+          costEl.textContent = audit.llm_cost_usd != null ? `$${audit.llm_cost_usd.toFixed ? audit.llm_cost_usd.toFixed(4) : audit.llm_cost_usd}` : '-';
+          const ragBits = [
+            audit.rag_multi_query ? `multi:${audit.rag_multi_count||'-'}` : null,
+            audit.rag_hyde ? 'hyde:on' : null,
+          ].filter(Boolean);
+          ragEl.textContent = ragBits.length ? ragBits.join(', ') : '-';
+          es.close();
+        });
+        es.onerror = () => {
+          es.close();
+        };
+      }
+
+      function send() {
+        const q = (qEl.value || '').trim();
+        if (!q) return;
+        addBubble(q, 'user');
+        turnsEl.textContent = String(++turn);
+        if (streamToggle.checked) {
+          startStream(q);
+        } else {
+          fetch('/architect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ question: q }) })
+            .then(r => r.json())
+            .then(data => {
+              const { audit, suggested_steps, suggested_env_flags, citations } = data || {};
+              if (data && data.answer) addBubble(data.answer, 'agent');
+              if (Array.isArray(suggested_steps) && suggested_steps.length) addBubble(`Steps:\n- ${suggested_steps.join('\n- ')}`, 'agent');
+              if (Array.isArray(suggested_env_flags) && suggested_env_flags.length) addBubble(`Flags: ${suggested_env_flags.join(', ')}`, 'agent');
+              if (Array.isArray(citations) && citations.length) {
+                citationsCount.textContent = `citations: ${citations.length}`;
+              }
+              if (audit) {
+                auditJsonEl.textContent = JSON.stringify(audit, null, 2);
+                providerEl.textContent = audit.llm_provider || '-';
+                modelEl.textContent = audit.llm_model || '-';
+                const tokens = [audit.llm_tokens_prompt, audit.llm_tokens_completion].filter(x=>x!=null).join(' + ');
+                tokensEl.textContent = tokens || '-';
+                costEl.textContent = audit.llm_cost_usd != null ? `$${audit.llm_cost_usd}` : '-';
+                const ragBits = [
+                  audit.rag_multi_query ? `multi:${audit.rag_multi_count||'-'}` : null,
+                  audit.rag_hyde ? 'hyde:on' : null,
+                ].filter(Boolean);
+                ragEl.textContent = ragBits.length ? ragBits.join(', ') : '-';
+              }
+            })
+            .catch(err => addBubble(`Error: ${err}`, 'agent'));
+        }
+        qEl.value = '';
+      }
+
+      sendBtn.onclick = send;
+      qEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); });
     </script>
   </body>
 </html>

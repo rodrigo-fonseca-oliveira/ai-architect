@@ -1,10 +1,14 @@
 
-# AI Risk & Compliance Monitor
+# AI Architect
 
 > A minimal reference platform for **safe, observable, and cost-aware** AI.
 > FastAPI gateway with audit logs, token/cost tracking, drift checks, and modular endpoints for **LLM (RAG)**, **Agent pipeline**, and **ML model serving** (MLflow).
 
 ---
+
+> Formerly known as ai-risk-monitor; code paths and APIs keep backward compatibility. UI/README are branded as AI Architect.
+
+![Hero](docs/images/hero.png)
 
 ## Overview
 

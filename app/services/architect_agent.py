@@ -76,6 +76,20 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
         plan.citations = citations
         plan.grounded_used = True
 
+    # Light heuristic for feature suggestion
+    try:
+        ql = (question or "").lower()
+        needs = any(w in ql for w in ("feature", "support", "integrate", "add", "roadmap"))
+        sparse = len(plan.suggested_steps or []) == 0 and len(plan.suggested_env_flags or []) == 0
+        if (sparse or not grounded_used) and needs:
+            plan.suggest_feature = True
+            plan.feature_request = plan.feature_request or (
+                f"Request: {question[:60]}" if question else "Feature request"
+            )
+            plan.tone_hint = plan.tone_hint or ("exploratory" if not grounded_used else "actionable")
+    except Exception:
+        pass
+
     # 6) Build audit fields
     audit: Dict[str, Any] = {
         "llm_provider": result.get("provider"),
