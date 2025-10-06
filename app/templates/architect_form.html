@@ -102,7 +102,18 @@
       const ghIssue = document.getElementById('ghIssue');
       const copyTemplate = document.getElementById('copyTemplate');
 
-      let turn = 1;
+      // session persistence
+      function getSessionId() {
+        let sid = localStorage.getItem('ai_architect_session_id');
+        if (!sid) {
+          sid = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+          localStorage.setItem('ai_architect_session_id', sid);
+        }
+        return sid;
+      }
+
+      let turn = parseInt(localStorage.getItem('ai_architect_turn') || '1', 10);
+      turnsEl.textContent = String(turn);
 
       function addBubble(text, who='agent') {
         const div = document.createElement('div');
@@ -117,7 +128,8 @@
       }
 
       function startStream(question) {
-        const es = new EventSource(`/architect/stream?question=${encodeURIComponent(question)}`);
+        if (!question || question.trim().length < 3) { return; }
+        const es = new EventSource(`/architect/stream?question=&session_id=`);
         let summaryParts = [];
         let steps = [];
         let flags = [];
@@ -183,13 +195,14 @@
 
       function send() {
         const q = (qEl.value || '').trim();
-        if (!q) return;
+        if (q.length < 3) { addBubble('Please enter at least 3 characters.', 'agent'); return; }
         addBubble(q, 'user');
         turnsEl.textContent = String(++turn);
+        localStorage.setItem('ai_architect_turn', String(turn));
         if (streamToggle.checked) {
           startStream(q);
         } else {
-          fetch('/architect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ question: q }) })
+          fetch('/architect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ question: q, session_id: getSessionId() }) })
             .then(r => r.json())
             .then(data => {
               const { audit, suggested_steps, suggested_env_flags, citations } = data || {};
@@ -220,6 +233,8 @@
 
       sendBtn.onclick = send;
       qEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); });
+      function updateSendState(){ const n=(qEl.value||'').trim().length; sendBtn.disabled = n < 3; }
+      qEl.addEventListener('input', updateSendState); updateSendState();
     </script>
   </body>
 </html>
