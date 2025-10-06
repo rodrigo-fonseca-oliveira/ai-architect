@@ -6,22 +6,24 @@
     <style>
       :root { --bg:#0b0f14; --card:#121821; --muted:#9aa4b2; --accent:#2dd4bf; --border:#223045; }
       * { box-sizing: border-box; }
-      body { margin:0; background: var(--bg); color:#e5e7eb; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+      html, body { height:100%; }
+      body { margin:0; background: var(--bg); color:#e5e7eb; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; overflow:hidden; }
       header { padding: 1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:.75rem; }
       header .brand { font-weight:700; letter-spacing:.3px; }
       header .badge { font-size:.8rem; color: var(--muted); }
       main { display:grid; grid-template-columns: 1.2fr .8fr; gap:1px; height: calc(100vh - 60px); }
       .col { height:100%; }
-      .left { display:flex; flex-direction:column; }
+      .left { display:flex; flex-direction:column; min-height:0; }
       .chat { flex:1; overflow:auto; padding: 1rem; }
       .bubble { max-width: 80%; padding: .75rem .9rem; margin: .5rem 0; border:1px solid var(--border); border-radius:12px; background:#0e141d; }
       .bubble.agent { background:#0f172a; border-color:#1f2a44; }
       .bubble.user { background:#111827; margin-left:auto; border-color:#263142; }
       .dock { border-top:1px solid var(--border); padding:.75rem; display:flex; gap:.5rem; background:#0e131a; }
-      .dock textarea { flex:1; background:#0b1118; color:#e5e7eb; border:1px solid var(--border); border-radius:8px; padding:.6rem .7rem; resize:vertical; min-height:60px; }
+      .dock textarea { flex:1; background:#0b1118; color:#e5e7eb; border:1px solid var(--border); border-radius:8px; padding:.6rem .7rem; resize:vertical; min-height:60px; max-height:30vh; }
       .dock button { background: var(--accent); color:#0b0f14; border:none; border-radius:8px; padding:.6rem .9rem; font-weight:600; cursor:pointer; }
       .dock .toggle { display:flex; align-items:center; gap:.4rem; color:var(--muted); }
-      .right { background:#0e131a; border-left:1px solid var(--border); padding:1rem; overflow:auto; }
+      .right { background:#0e131a; border-left:1px solid var(--border); padding:0; display:flex; flex-direction:column; min-height:0; }
+      .right .inner { padding:1rem; overflow:auto; flex:1; }
       .kvs { display:grid; grid-template-columns: .9fr 1.1fr; gap:.5rem .75rem; font-size:.95rem; }
       .k { color:var(--muted); }
       .v code { background:#0b1118; padding:.2rem .35rem; border-radius:4px; border:1px solid var(--border); }
@@ -52,28 +54,30 @@
         </div>
       </div>
       <div class="col right">
-        <div class="section">
-          <span id="groundedBadge" class="badge">grounded: unknown</span>
-          <span id="citationsCount" class="badge">citations: 0</span>
-        </div>
-        <div class="section kvs">
-          <div class="k">Provider</div><div class="v" id="provider">-</div>
-          <div class="k">Model</div><div class="v" id="model">-</div>
-          <div class="k">Tokens</div><div class="v" id="tokens">-</div>
-          <div class="k">Cost</div><div class="v" id="cost">-</div>
-          <div class="k">RAG</div><div class="v" id="rag">-</div>
-          <div class="k">Turns</div><div class="v" id="turns">1</div>
-        </div>
-        <div class="section">
-          <details>
-            <summary>Audit JSON</summary>
-            <pre id="auditJson">{}</pre>
-          </details>
-        </div>
-        <div class="section" id="featureCta" style="display:none;">
-          <div>Want this as a feature? Create a GitHub Issue or copy a template.</div>
-          <a id="ghIssue" class="cta badge" href="#" target="_blank">Create GitHub Issue</a>
-          <button id="copyTemplate" class="cta">Copy Template</button>
+        <div class="inner">
+          <div class="section">
+            <span id="groundedBadge" class="badge">grounded: unknown</span>
+            <span id="citationsCount" class="badge">citations: 0</span>
+          </div>
+          <div class="section kvs">
+            <div class="k">Provider</div><div class="v" id="provider">-</div>
+            <div class="k">Model</div><div class="v" id="model">-</div>
+            <div class="k">Tokens</div><div class="v" id="tokens">-</div>
+            <div class="k">Cost</div><div class="v" id="cost">-</div>
+            <div class="k">RAG</div><div class="v" id="rag">-</div>
+            <div class="k">Turns</div><div class="v" id="turns">1</div>
+          </div>
+          <div class="section">
+            <details>
+              <summary>Audit JSON</summary>
+              <pre id="auditJson">{}</pre>
+            </details>
+          </div>
+          <div class="section" id="featureCta" style="display:none;">
+            <div>Want this as a feature? Create a GitHub Issue or copy a template.</div>
+            <a id="ghIssue" class="cta badge" href="#" target="_blank">Create GitHub Issue</a>
+            <button id="copyTemplate" class="cta">Copy Template</button>
+          </div>
         </div>
       </div>
     </main>
