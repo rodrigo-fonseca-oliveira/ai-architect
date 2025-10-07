@@ -1,6 +1,7 @@
 import os
 
 from fastapi import APIRouter, Header, HTTPException, Response, status
+from fastapi.responses import PlainTextResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app.utils.metrics import registry
@@ -16,7 +17,17 @@ def healthz():
     return {"status": "ok"}
 
 
-@router.get("/metrics")
+@router.get(
+    "/metrics",
+    response_class=PlainTextResponse,
+    responses={
+        200: {
+            "content": {
+                "text/plain": {"schema": {"type": "string"}},
+            }
+        }
+    },
+)
 def metrics(
     x_metrics_token: str | None = Header(default=None, alias="X-Metrics-Token")
 ):
@@ -27,4 +38,5 @@ def metrics(
                 status_code=status.HTTP_403_FORBIDDEN, detail="forbidden"
             )
     data = generate_latest(registry)
+    # Keep precise Prometheus content type for runtime; OpenAPI will still advertise text/plain
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)

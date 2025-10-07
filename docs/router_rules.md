@@ -49,6 +49,10 @@ Behavior notes
   - policy_navigator for policy/regulation/gdpr/hipaa/compliance
   - Otherwise qa
 
+Intent names and aliases
+- Canonical: qa, pii_detect, risk_score, policy_navigator, pii_remediation, other.
+- Alias: some tests/docs may use the shorthand policy_nav; the router emits policy_navigator in audit.router_intent.
+
 Troubleshooting
 - Matching is case-insensitive substring-based; include stems for broader matches (e.g., "anonymiz" catches anonymize/anonymization).
 - Validate JSON: echo $ROUTER_RULES_JSON | python -m json.tool

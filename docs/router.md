@@ -20,6 +20,10 @@ Behavior
 - If no rules are configured or no rule matches, builtin heuristics apply (e.g., email/ssn/credit card → pii_detect; risk/severity → risk_score; policy/gdpr/hipaa/compliance → policy_navigator; otherwise qa).
 - If grounded=true, the router returns qa (RBAC still applies for grounded queries).
 
+Intent names and aliases
+- Canonical intent names: qa, pii_detect, risk_score, policy_navigator, pii_remediation, other.
+- Alias: some tests/docs may use the shorthand policy_nav; the router emits policy_navigator in audit.router_intent.
+
 Try it
 - curl -X POST localhost:8000/query -H 'Content-Type: application/json' -d '{"question":"Email is bob@example.com","grounded": false}'
 - Expected: audit.router_intent == "pii_detect"

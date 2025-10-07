@@ -4,6 +4,9 @@ Overview and scope
 - Purpose: Baseline review of code quality, structure, and doc-to-code alignment. No application code changes in this session.
 - Deliverables: This living report, a checklist index, and a baseline test run summary.
 
+Operational notes
+- Tests are run via shell with .venv activated: . .venv/bin/activate && pytest -q
+
 Repository map (high level)
 - FastAPI app: app/
   - Routers: app/routers/* (query, research, predict, pii, pii_remediation, risk, memory, metrics, architect, architect_stream, architect_ui, policy)
@@ -30,7 +33,7 @@ API and behavior alignment checklist (initial)
   - Memory endpoints (get/delete short, get/delete long, export/import, status): implemented — OK
   - POST /policy_navigator: implemented — OK
   - POST /pii_remediation: implemented — OK
-  - Architect/Architect UI/stream endpoints exist but are intentionally not exposed in openapi.yaml (consider documenting explicitly) — NOTE
+  - Architect/Architect UI/stream endpoints are now present in OpenAPI. Content types adjusted: /metrics -> text/plain; /architect/stream -> text/event-stream — UPDATED
 
 Cross-cutting behavior
 - Request ID middleware present; exceptions mapped to JSON via app/utils/exceptions.py — aligns with docs/api.md.
@@ -57,9 +60,7 @@ Security and privacy posture (initial)
 - RBAC: step-level checks for /research; grounded queries restricted — OK.
 - Retention: memory docs describe env knobs; endpoints expose status and export/import — OK.
 
-Testing baseline (to be filled after running pytest)
-- Command: . .venv/bin/activate && pytest -q
-- Result: TEST_RESULTS_PLACEHOLDER
+
 
 Recommendations (priority draft)
 - Add architect endpoints to OpenAPI/docs or explicitly mark as experimental in docs.
