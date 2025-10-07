@@ -4,6 +4,8 @@
 
 ---
 
+[![CI](https://github.com/rodrigo-fonseca-oliveira/ai-architect/actions/workflows/ci.yml/badge.svg)](https://github.com/rodrigo-fonseca-oliveira/ai-architect/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/rodrigo-fonseca-oliveira/ai-architect/branch/main/graph/badge.svg)](https://codecov.io/gh/rodrigo-fonseca-oliveira/ai-architect) [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml) [![Docs](https://img.shields.io/badge/docs-index-blue)](docs/README.md)[![Ruff](https://img.shields.io/badge/lint-ruff-46aef7.svg)](https://github.com/astral-sh/ruff) [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688.svg)](https://fastapi.tiangolo.com)
+
 ![Hero](docs/images/hero.png)
 
 ## Why AI Architect
