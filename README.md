@@ -1,570 +1,187 @@
-
-# AI Architect
-
-> Architect-first OSS experience for designing and operating safe, observable, and cost-aware AI.
-> Primary experience: Architect agent with dynamic grounding, structured plans, and progressive streaming.
+# 🧠 AI Architect
+> **Architect-first open-source platform for designing safe, observable, and cost-aware AI systems.**  
+> Primary interface: **/architect** — a meta-agent that orchestrates RAG, agents, and ML models to produce grounded, auditable plans.
 
 ---
 
 ![Hero](docs/images/hero.png)
 
-## What is AI Architect
+## Why AI Architect
+**AI Architect** demonstrates how to build LLM-driven systems with **governance, observability, and FinOps** built-in. It merges **RAG**, **agentic workflows**, and **MLflow** into a production-grade reference architecture.
 
-AI Architect is a lightweight, open-source reference architecture for designing and operating safe, observable, and cost-aware AI systems. It blends a hands-on learning experience with a production-minded blueprint.
-
-Community-driven vision
-- Learn: explore real code and best practices for AI architecture end-to-end.
-- Architect: interact with the Architect agent to get guidance, brainstorm approaches, and map ideas to implementation steps.
-- Evolve: as you chat, the agent may propose feature ideas that align with the project’s vision; contribute by opening issues and PRs.
-
-> Careful with the Architect agent—it has a habit of turning brainstorms into to-do lists.
-
-Highlights
-- Grounded Q&A with citations (deterministic by default in tests)
-- Agentic pipelines with tool auditing and request-level audit rows
-- ML lifecycle examples with MLflow + drift checks
-- FinOps metrics (tokens, cost) exposed at /metrics
-
-For deeper topics (API, RAG, memory, security, MLOps), see docs/README.md.
+- **Transparent** by design — audit logs, hashed request/response pairs.
+- **Observable** — Prometheus `/metrics` + Grafana dashboards.
+- **Cost-aware** — token and cost tracking per user/day.
+- **Governed** — RBAC, retention sweeps, and prompt registries.
 
 ---
-![alt text](docs/images/ai-architect.png)
-```
-Client → FastAPI Gateway
-         ├── /query     (LLM + optional RAG) ─┐
-         ├── /research  (Agent pipeline)      ├─→ Audit DB (SQLite/Postgres)
-         ├── /predict   (MLflow model)        ┘
-         ├── /metrics   (Prometheus text)
-         └── /healthz
-    [Structured logs + Request IDs + Token/Cost tracker + RBAC stub]
-```
 
-### Architect Agent Flow (scope: /architect, /architect/stream)
+## 💡 Use Cases
+| Scenario | Description |
+|-----------|--------------|
+| **Architect Assistant** | Ask architectural or implementation questions and receive structured, grounded responses from the system’s own docs. |
+| **Policy Navigator** | Explore compliance and governance policies using grounded QA. |
+| **PII Remediation** | Detect, redact, and audit sensitive data with explainable steps. |
+| **Risk Scoring** | Classify incidents with heuristic or MLflow-tracked models. |
+| **MLOps Demonstrator** | Observe model training, drift detection, and registry integration. |
+
+> The **Architect Agent** is the main entry point — all other endpoints act as modular tools or sub-agents.
+
+---
+
+## 🧭 Architect Orchestration Flow
 ```mermaid
-%% AI Architect Orchestration Diagram (accurate to current code)
 flowchart TD
   subgraph ClientLayer[Client / UI / External API]
-    U[User question]
+    U[User Query]
   end
 
   subgraph ArchitectLayer[Architect Agent]
-    A1[Intent and mode selection]
-    A2[Plan builder]
-    A3[Audit and cost tracking]
+    A1[Intent & Mode Selection]
+    A2[Planner / Orchestrator]
+    A3[Audit & Cost Tracking]
   end
 
-  subgraph Governance[Governance, Observability and Storage]
+  subgraph Governance[Governance, Observability & Storage]
     DB[(Audit DB)]
-    F[FinOps metrics / Prometheus]
-    G[Grafana dashboards]
-    RBAC[RBAC / Security layer]
+    F[FinOps Metrics / Prometheus]
+    G[Grafana Dashboards]
+    RBAC[RBAC / Security Layer]
   end
 
   U --> A1 --> A2 --> A3
   A3 --> DB
   A3 --> F --> G
   A3 --> RBAC
-
-  classDef main fill:#2563eb,stroke:#fff,color:#fff
-  classDef gov fill:#facc15,stroke:#fff,color:#000
-
-  class ArchitectLayer main
-  class Governance gov
 ```
-
-Note: Architect outputs plans/citations and emits audit/metrics; it does not invoke other endpoints. An execution mode may be added later behind a feature flag.
-
-
-### System Architecture (scope: all endpoints/components)
-Note: Includes retrieval (DOCS_PATH scan), optional LLM synthesis, agent pipeline, governance, observability, and ML.
-```mermaid
-flowchart LR
-  A[Client / UI] -->|REST / JSON| B[FastAPI Gateway]
-
-  subgraph Routing
-    B --> R1[Router feature flagged]
-  end
-
-  subgraph Retrieval_and_Synthesis
-    B --> C1[Retriever DOCS_PATH scan]
-    C1 --> C3[Optional LLM synthesis]
-    C1 --> C4[Vector store future FAISS Chroma]
-    C3 --> C5[Prompt templates]
-  end
-
-  subgraph Memory
-    B --> M1[Short memory sqlite]
-    B --> M2[Long memory embeddings]
-  end
-
-  subgraph Governance_and_Compliance
-    B --> D1[Audit Logger]
-    D1 --> D2[Audit DB SQLite or Postgres]
-    D1 --> D3[Denylist Compliance Rules]
-    D1 --> D4[Cost Tracker FinOps Metrics]
-  end
-
-  subgraph Observability
-    D4 --> E1[Prometheus Metrics]
-    E1 --> E2[Grafana Dashboard]
-  end
-
-  subgraph ML_Lifecycle
-    B --> F1[MLflow Model API predict]
-    F1 --> F2[MLflow local store]
-    F1 --> F3[Drift Detector Retraining Pipeline]
-  end
-
-  subgraph Agentic_Pipeline
-    B --> G1[Agent Orchestrator research]
-    G1 --> G2[Search Tool web fetch - AGENT_LIVE_MODE allowlist]
-    G1 --> G3[Summarizer Risk Checker]
-    G1 --> D1
-  end
-```
+> Current behavior: `/architect` produces structured plans and citations while emitting audit and metrics events.
 
 ---
 
-## Quickstart
-
+## ⚡ Quickstart
 ```bash
-# 0) Clone & env
+# 0) Setup
 git clone https://github.com/rodrigo-fonseca-oliveira/ai-architect
 cd ai-architect
-cp .env.example .env  # fill in keys if using a hosted LLM (or start with local/stub embeddings)
+cp .env.example .env
 
-# 1) Setup venv and install
+# 1) Create environment
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -e .
 
-# 2) (Optional) Ingest docs for RAG (LangChain mode)
-# Place .md/.txt/.pdf files under DOCS_PATH; sample: examples/gdpr.txt and examples/gdpr.pdf
+# 2) Optional: ingest docs for RAG
 python scripts/ingest_docs.py
 
 # 3) Run locally
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 
-# 4) Smoke test
-curl -X POST localhost:8000/query \
+# 4) Query the Architect Agent (guide mode)
+curl -sX POST localhost:8000/architect \
   -H "Content-Type: application/json" \
-  -H "X-User-Role: analyst" \
-  -d '{"question":"What is GDPR?", "grounded": true}'
+  -d '{"question":"Design a RAG pipeline with drift monitoring"}' | jq .
 
-# Guest (no role header) can use ungrounded query
-curl -X POST localhost:8000/query \
+# Brainstorm mode
+curl -sX POST localhost:8000/architect \
   -H "Content-Type: application/json" \
-  -d '{"question":"What is GDPR?", "grounded": false}'
-
-# 5) Metrics
-curl localhost:8000/metrics | sed -n '1,80p'
+  -d '{"question":"How does the router decide intents?","mode":"brainstorm"}' | jq .
 ```
-
-### Architect UI
-
-- Unified UI at http://localhost:8000/architect/ui (Architect-first).
-
-### Architect mode
-
-- Dynamic grounding; no explicit mode required.
-- For the Project Guide feature set and behavior, see docs/project_guide_rag.md.
-- UI: open http://localhost:8000/architect/ui
-
-## Learn more
-
-See docs/README.md for the full documentation index. Useful deep links:
-- docs/api.md — endpoints and schemas
-- docs/rag.md — retrieval config and ingestion
-- docs/rag_vector_backends.md — vector backends roadmap
-- docs/architecture_index.md — system overview and file map
-- docs/observability.md — metrics and dashboards
-- docs/security.md — RBAC, PII, retention
-- docs/mlops_plan.md — ML lifecycle plan
-- docs/getting_started.md — this quickstart in more detail
+**UI:** http://localhost:8000/architect/ui
 
 ---
 
-<!-- Details moved to docs/api.md; keep README high-level. -->
+## 🧱 Repository Layout
+| Folder | Purpose |
+|--------|----------|
+| `app/routers/` | FastAPI endpoints (architect, query, research, risk, pii, memory) |
+| `app/services/` | Core services: RAG, agents, risk, MLflow integration |
+| `app/utils/` | Audit, RBAC, cost tracking, prompt registry |
+| `db/` | SQLAlchemy models and migrations |
+| `ml/` | ML training, drift, and registry scripts |
+| `scripts/` | Utilities (ingestion, retention sweep, OpenAPI export) |
+| `docs/` | System and feature documentation |
 
-
-![alt text](docs/images/swagger.png)
-
-  Notes:
-  - Deterministic, offline-friendly by default (AGENT_LIVE_MODE=false).
-  - Step-level audit is included (name, inputs, outputs preview, latency, hash, timestamp).
-  - Denylist terms flagged into audit.compliance_flag.
-  - To enable live fetch, set `AGENT_LIVE_MODE=true` and optionally `AGENT_URL_ALLOWLIST` (comma-separated prefixes).
-
-* `POST /predict`
-  Input: `{ features: {...} }`
-  Output: `{ prediction, model_version, request_id }`
-
-  Example:
-  ```bash
-  # Train a tiny model (local MLflow)
-  . .venv/bin/activate && python ml/train.py
-
-  # Predict using latest run artifact
-  curl -X POST localhost:8000/predict -H "Content-Type: application/json" \
-    -d '{"features": {"f0": 0.1, "f1": -0.2, "f2": 0.3, "f3": 0.0, "f4": 0.2, "f5": -0.1, "f6": 0.0, "f7": 0.0}}'
-  ```
-
-* `POST /risk`
-  Input: `{ text: str }`
-  Output: `{ label, value, rationale, audit }`
-  Notes:
-  - Heuristic scorer by default. Enable ML-like scoring with `RISK_ML_ENABLED=true` and optionally set `RISK_THRESHOLD` (default 0.6).
-
-* `GET /metrics` → Prometheus text (latency, tokens, cost, requests)
-
-* `GET /memory/short` — list short-term memory for a session (analyst/admin)
-* `DELETE /memory/short` — clear short-term memory for a session (analyst/admin)
-* `GET /memory/long` — list long-term facts (analyst/admin)
-* `DELETE /memory/long` — clear long-term facts (analyst/admin)
-* `GET /memory/long/export` — export long-term facts (analyst/admin)
-* `POST /memory/long/import` — import long-term facts (analyst/admin)
-* `GET /memory/status` — admin-only status and config overview
+Complete file map → `docs/components.md`
 
 ---
 
-<!-- Deep details moved to docs/observability.md and docs/security.md. -->
-
-## Observability and security (at a glance)
-
-* **Structured JSON logs** with `request_id` (propagated)
-* **Audit DB row** per request: timestamps, role, prompt/resp hashes, flags
-* **Token & cost** estimator (per model) aggregated by user/day
-* **Denylist** (e.g., “SSN”, “PHI”) → `compliance_flag=true` in audit row
-* **Retention** via `LOG_RETENTION_DAYS` (cron or on-demand sweep)
-
-### Retention Sweeper
-- Deletes audit rows older than `LOG_RETENTION_DAYS` (default: 30).
-- Run it via VS Code task: “Sweep retention (audit)”, or CLI:
-  - `. .venv/bin/activate && python scripts/sweep_retention.py`
-
----
-
-<!-- ML details moved to docs/ml.md and docs/mlops_plan.md. -->
-
-## ML lifecycle (at a glance)
-
-* `ml/train.py` trains a tiny model (e.g., churn) → logs params/metrics/artifacts
-* Register best model → served by `/predict` via `mlflow_client.py`
-* `ml/drift.py` runs **PSI/KS** drift check; if over threshold, writes a “retrain recommended” flag (and exits non-zero in CI if you want to gate promotion)
-
----
-
-<!-- Agent details moved to docs/agents.md. -->
-
-## Agentic pipeline (at a glance)
-
-* Deterministic steps: `search → fetch → summarize → risk_check`
-* **Tool calls audited** (name, args, latency, result hash)
-* Safety hook blocks disallowed tools (documented in README)
-
-### Agent Flow (Mermaid)
+## 🧩 System Architecture
 ```mermaid
 flowchart LR
-    T[Topic] --> S[search]
-    S --> F[fetch]
-    F --> U[summarize]
-    U --> R[risk_check]
+  A["Client / UI"] -->|REST / JSON| B["FastAPI Gateway"]
 
-    subgraph Audit
-      A1[step.name]
-      A2[inputs]
-      A3[outputs preview]
-      A4[latency & hash]
-    end
+  subgraph Retrieval_and_Synthesis
+    B --> C1["Retriever: DOCS_PATH scan"]
+    C1 --> C3["Optional LLM Synthesis"]
+    C1 --> C4["Vector Store: FAISS / Chroma"]
+  end
 
-    S --> A1
-    F --> A2
-    U --> A3
-    R --> A4
+  subgraph Memory
+    B --> M1["Short-term Memory: SQLite"]
+    B --> M2["Long-term Memory: Embeddings"]
+  end
+
+  subgraph Governance_and_Compliance
+    B --> D1["Audit Logger"]
+    D1 --> D2[("Audit DB")] 
+    D1 --> D3["Denylist / Compliance Rules"]
+    D1 --> D4["Cost Tracker / FinOps Metrics"]
+  end
+
+  subgraph Observability
+    D4 --> E1["Prometheus /metrics"]
+    E1 --> E2["Grafana Dashboard"]
+  end
+
+  subgraph ML_Lifecycle
+    B --> F1["/predict (MLflow Model API)"]
+    F1 --> F2["Model Registry"]
+    F1 --> F3["Drift Detector / Retraining"]
+  end
+
+  subgraph Agents
+    B --> G1["/research (Agent Orchestrator)"]
+    G1 --> G2["Search Tool / Web Fetch (allowlist)"]
+    G1 --> G3["Summarizer / Risk Checker"]
+    G1 --> D1
+  end
 ```
 
 
+---
+
+## 🔒 Governance & Observability
+- **Audit rows** per request (role, hashes, latency, flags)
+- **RBAC** via `X-User-Role` (`guest`, `analyst`, `admin`)
+- **FinOps**: token & cost metrics at `/metrics`
+- **Retention**: `scripts/sweep_retention.py` for old audits
+- **Prompt Registry**: versioned YAML under `prompts/`
+
+Full details → `docs/observability.md`, `docs/security.md`
 
 ---
 
-## Security and governance (at a glance)
-
-### PII configuration
-- Environment variables:
-  - PII_TYPES: comma-separated base types to detect (default: email,phone,ssn,credit_card,ipv4). Additional types available: ipv6, iban, passport.
-  - PII_LOCALES: comma-separated locales to enable locale-specific patterns (e.g., US,UK,CA,DE).
-- Example:
-  - export PII_TYPES="email,phone,ssn,credit_card,ipv4"
-  - export PII_LOCALES="US,UK,CA"
-- Try it:
-  - curl -X POST localhost:8000/pii -H "Content-Type: application/json" -H "X-User-Role: analyst" -d '{"text":"Contact bob@example.com, UK NI AB123456C, ZIP 12345-6789"}'
-- Notes:
-  - Some locale patterns are simplified for demonstration and may produce false positives.
-  - Masking reveals only head/tail of detected values; use PII endpoint for previews and audit aggregation.
-
-* **No secrets** in code; use `.env.example`
-* **RBAC**: roles (`admin`, `analyst`, `guest`) enforced via `X-User-Role` header
-  - /metrics: open by default. To protect, set METRICS_TOKEN and have your scraper send header `X-Metrics-Token: $METRICS_TOKEN`.
-  - /predict: analyst/admin
-  - /query: grounded=true requires analyst/admin; guest allowed grounded=false
-  - /research: guest cannot use `fetch` step; analyst/admin allowed
-* **Data Card & Model Card** in `docs/` (templated Markdown)
-* **Prompt Registry** in `prompts/*.yaml` (versioned, code-reviewed). Load via `app.utils.prompts.load_prompt(name, version)`.
+## 🗺️ Roadmap (Condensed)
+| Phase | Focus | Status |
+|-------|--------|--------|
+| 0–2 | Core APIs, RAG, Audit, Metrics | ✅ Done |
+| 3–4 | Agents, RBAC, Grafana, Deploy Recipes | ✅ Done |
+| 5–6 | PII detection, Risk ML integration, Router v2 | 🚧 In Progress |
+| 7–8 | Memory & Advanced Agents | ✅ Done |
+| 9 | Architect deterministic mode (LangGraph) | ✅ Done |
+| 10+ | New sub-agents (FinOps, Drift Monitor, Router Preview) | 🧩 Planned |
 
 ---
 
-## Local development and testing
+## 🤝 Contributing
+1. Interact with the **Architect Agent** in brainstorm mode.  
+2. Copy generated plans into GitHub issues.  
+3. Follow `CONTRIBUTING.md` for PR flow.
 
-### Pre-commit hooks
-- Install and enable:
-  - pip install pre-commit
-  - pre-commit install
-- Run manually:
-  - pre-commit run --all-files
-
-### System dependencies
-- jq is required for the E2E script (scripts/manual_e2e_test.sh) to pretty-print and validate JSON.
-  - Ubuntu/Debian: `sudo apt-get update && sudo apt-get install -y jq`
-  - macOS (Homebrew): `brew install jq`
-  - Fedora: `sudo dnf install -y jq`
-
-See docs/testing.md for a full cheat sheet. You can also use the Makefile for convenience.
-
-```bash
-# Create venv and install
-make venv
-
-# Run tests
-make test
-
-# Start API
-make serve
-
-# Export OpenAPI (when endpoints/schemas change)
-make export-openapi
-```
-
-Manual commands (if you prefer):
-
-```bash
-python -m venv .venv
-. .venv/bin/activate
-pip install -e .
-.venv/bin/python -m pytest -q
-uvicorn app.main:app --reload
-```
+Starter prompts → `docs/llm_agent_streaming_prompts.md`
 
 ---
 
-## CI/CD (GitHub Actions)
-
-* **ci.yml** runs on PR & main:
-
-  * Setup Python, install deps
-  * Ruff + mypy + pytest
-  * `python ml/train.py` with small data (fast) — logs params/metrics/artifacts to MLflow local path
-  * `python ml/drift.py --baseline ml/data/baseline.csv --input ml/data/new_batch.csv` (deterministic drift check)
-    - Non-fatal by default in CI via `|| true`; remove `|| true` to fail the build on drift > threshold
-  * Optionally push “candidate model” tag if metrics ≥ baseline
-* (Optional) CD: deploy container to Render/Fly.io/Cloud Run (later)
-
-### Local Observability Stack (Prometheus + Grafana)
-- Start everything:
-  ```bash
-  docker compose up --build
-  ```
-- Prometheus: http://localhost:9090 (scraping /metrics)
-- Grafana: http://localhost:3000 (admin/admin by default)
-  - Datasource and dashboard are auto-provisioned (Prometheus at http://prometheus:9090).
-  - If you set METRICS_TOKEN, update Prometheus to send the header:
-    
-    scrape_configs:
-      - job_name: 'ai-monitor'
-        static_configs:
-          - targets: ['api:8000']
-        metrics_path: /metrics
-        scheme: http
-        headers:
-          X-Metrics-Token: ${METRICS_TOKEN}
-
-  - If needed, import dashboard: docs/grafana/ai-monitor-dashboard.json
-
-![alt text](docs/images/grafana.png)
-
-### CPU-only builds (PyTorch)
-- The Docker images pre-install CPU-only PyTorch wheels to avoid slow CUDA downloads.
-- This is done via:
-  - pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchaudio
-- If you need GPU builds, remove that line and install the default CUDA-enabled wheels (or set the appropriate CUDA index URL) before installing project deps.
-- For reproducibility, you may pin versions, for example:
-  - torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 with the CPU index URL.
-
-### Deploy on Render (Docker)
-1. Push this repo to GitHub.
-2. In Render, create a new Web Service and connect the repo.
-3. Choose “Deploy from Docker” and keep Dockerfile at repo root.
-4. Set environment variables (from `.env.example`), at minimum:
-   - APP_ENV=production
-   - LOG_LEVEL=INFO
-   - EMBEDDINGS_PROVIDER=stub (or local/openai)
-   - VECTORSTORE_PATH=/data/vectorstore (if you add a disk)
-   - DOCS_PATH=/app/examples
-   - DB_URL=sqlite:////data/audit.db (if you add a disk)
-5. Health check path: `/healthz` (port 8000).
-6. (Optional) Add a persistent disk and mount at `/data` for audit.db and vectorstore.
-7. Click Deploy. The app should be reachable at your Render URL.
-
----
-
-## Demo script (90 seconds)
-
-1. `uvicorn app.main:app` → hit `/healthz`
-2. `POST /query` with grounded=true → show citations + cost
-3. `GET /metrics` → point out latency, tokens, cost
-4. Open `audit` table → show request row (hashes, flags, role)
-5. (Later) Run `python ml/drift.py` → show drift flag → (optional) retrain action
-
-### Screenshots (what to capture)
-- CI: GitHub Actions run for main showing green checks
-- Logs: Run API and capture JSON logs
-  - `. .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 | tee logs/app.log`
-  - Open `logs/app.log` for a compact JSON log screenshot
-- Metrics: `curl localhost:8000/metrics` and capture counters/histograms
-- MLflow UI: launch with `mlflow ui --backend-store-uri ./.mlruns` then open http://127.0.0.1:5000 and capture
-
----
-
-## Known limitations
-
-* Local vector store (Chroma/FAISS); swap for managed in prod
-* Cost estimator approximates vendor pricing; not real billing
-* RBAC is illustrative only; integrate with real IdP in prod
-* Agent uses public sources; add Evals before production use
-
----
-
-## Roadmap
-
-### Phase 0 — Bootstrap
-
-- [x] FastAPI app skeleton + /healthz
-- [x] JSON logger with request_id
-- [x] SQLite DB + audit table (persist audit rows)
-- [x] /query using a stub LLM (no external calls)
-- [x] Token/cost estimator (mock) + /metrics
-- [x] Basic tests (routers + audit write)
-- [x] CI: ruff + pytest
-
-### Phase 1 — Core Value
-
-- [x] RAG: ingest local docs with Chroma (scripts/ingest_docs.py)
-- [x] /query returns citations when grounded=true
-- [x] Denylist check + compliance_flag (env-based)
-- [x] Retention sweeper (delete audit rows older than LOG_RETENTION_DAYS)
-- [x] README architecture diagram + screenshots
-
-### Phase 2 — Agent & MLflow
-
-- [x] /research: search → fetch → summarize → risk_check
-- [x] Agent step audit (tool name, args, latency, hash)
-- [x] ML: ml/train.py → MLflow (local) logs params/metrics/artifacts
-- [x] /predict loads latest model from MLflow local store
-- [x] ml/drift.py (PSI) + “retrain recommended” flag
-- [x] CI runs tiny train.py and drift.py on PR
-
-### Phase 3 — Polish
-
-- [x] Role-based access checks (admin/analyst/guest)
-- [x] Prompt registry (prompts/*.yaml) + loader
-- [x] Grafana dashboard (pre-provisioned via docker-compose)
-- [x] Dockerized one-click deploy (Render)
-- [x] Data Card & Model Card in docs/
-
-### Phase 4 — RAG + Router
-
-- [x] LangChain RetrievalQA (LC-only) for grounded QA
-- [x] Simple Router Agent (feature-flagged) selects intent (qa, pii_detect, risk_score, other)
-- [x] Audit enrichment: rag_backend, router_backend, router_intent; structured log event
-- [x] Tests and docs updated (flags, API fields, agents overview)
-- [x] Extend router rules/config and add richer backends (rules backend v2 with JSON-config)
-- [ ] Router Agent UI/docs examples (optional)
-
-
-### Phase 5 — PII Detection
-
-- [x] Regex-based PII detection agent (email, phone, SSN, IPv4, credit_card + Luhn)
-- [x] Extended patterns (IPv6, IBAN, passport)
-- [x] /pii endpoint with masked previews; configurable PII_TYPES
-- [x] Router integration adds pii_* audit fields
-- [x] Added locale-aware patterns (US/UK/CA/DE) via PII_LOCALES (simplified)
-- [ ] Further pattern extensions/config (additional IDs/locales)
-
-### Phase 6 — Risk Scoring
-
-- [x] Heuristic risk scorer and /risk endpoint
-- [x] Router integration adds risk_* audit fields
-- [x] Optional ML-like deterministic scorer gated by RISK_ML_ENABLED (flag present; implementation to be enhanced)
-- [ ] MLflow-integrated model, registry, and serving with audit fields (see docs/mlops_plan.md)
-- [ ] Data drift (PSI) monitoring and reporting (Phase 2)
-- [ ] Model drift evaluation (labels/proxies) and gated promotion (Phase 3/4)
-
-### Phase 7 — Memory
-
-- [x] Short-term conversation memory (buffer + rolling summary) per session_id
-- [x] Long-term in-process semantic memory (user facts) with retrieval and ingestion
-- [x] /query integration: optional session_id, reads/writes, rolling summary after max turns
-- [x] Audit enrichment: memory_short_reads/writes, summary_updated, memory_long_reads/writes, memory_short_pruned, memory_long_pruned
-- [x] Endpoints to list/clear memory; RBAC and retention policies
-- [x] Export/Import long memory; enriched export fields
-- [x] Docs and tests for memory and retention
-
-### Phase 8 — Agents & RAG Enhancements
-
-- [x] Policy Navigator Agent (decompose → retrieve → synthesize → recommend)
-- [x] PII Remediation Agent (detect → retrieve policy → propose redactions + code snippets)
-- [x] Retrieval improvements (multi-query/hyDE)
-- [x] Expand docs/testing.md with sequential curl scenarios
-- [ ] Extend multi-query/hyDE to LangChain path
-- [ ] Router integration for new agents (auto intent)
-
-### Phase 9 — Ops & DX
-
-- [x] Makefile targets (venv, test, serve, lint, export-openapi)
-- [x] CONTRIBUTING.md and curl examples
-- [ ] OpenAPI export in CI (manual export available via make export-openapi)
-- [ ] Deployment recipes, Grafana dashboards packaging
-- [ ] Pre-commit hooks and/or VS Code tasks
-
----
-
-## Tech stack
-
-Note: See docs/README.md for deep dives on API, RAG, agents, and MLOps.
-
-- **API**: FastAPI, Pydantic, Uvicorn
-- **Web/UI**: Jinja2 templates, vanilla JS (SSE for streaming)
-- **LLM/RAG**: Deterministic retriever (default) or LangChain + Chroma; optional hosted providers via EMBEDDINGS_PROVIDER
-- **Agents**: Structured Architect agent; Policy Navigator; PII Remediation; Router (rules-based)
-- **ML**: scikit-learn, MLflow (local), drift checks (PSI/KS)
-- **Data/DB**: SQLite (local) with SQLAlchemy; optional Postgres
-- **Observability**: JSON logs, Prometheus /metrics, Grafana dashboard (provisioned)
-- **Testing**: Pytest with deterministic defaults
-- **CI**: GitHub Actions (lint, tests, tiny train + drift check)
-- **Packaging/Dev**: Makefile targets; Dockerfiles; optional docker-compose for Prometheus/Grafana
-
----
-
-## Contributing
-
-We grow this reference architecture with the community.
-- Start by chatting with the Architect agent. When it proposes a feature aligned with the vision, you can copy its plan into a GitHub issue.
-- See CONTRIBUTING.md for guidelines and a quick checklist.
-- Docs to consult when shaping proposals: docs/ai-architect-launch.md, docs/rag.md, docs/agents.md, docs/router.md.
-
-Prefer a template? Try the prompts in docs/llm_agent_streaming_prompts.md to generate an issue-ready title/body.
-
-## License
-
-Apache-2.0 (or MIT).
-
+## 🧭 License
+Apache-2.0 (or MIT). See `LICENSE`.
 
