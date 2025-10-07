@@ -630,6 +630,288 @@
           }
         }
       }
+    },
+    "/architect": {
+      "post": {
+        "tags": [
+          "Architect"
+        ],
+        "summary": "Post Architect",
+        "operationId": "post_architect_architect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchitectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchitectResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/architect/stream": {
+      "get": {
+        "summary": "Stream Architect",
+        "operationId": "stream_architect_architect_stream_get",
+        "parameters": [
+          {
+            "name": "question",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Question"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/architect/ui": {
+      "get": {
+        "tags": [
+          "Architect"
+        ],
+        "summary": "Get Ui",
+        "operationId": "get_ui_architect_ui_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui": {
+      "get": {
+        "tags": [
+          "UI"
+        ],
+        "summary": "Get Ui",
+        "operationId": "get_ui_ui_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/architect": {
+      "post": {
+        "tags": [
+          "UI"
+        ],
+        "summary": "Ui Architect",
+        "operationId": "ui_architect_ui_architect_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_ui_architect_ui_architect_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/query": {
+      "post": {
+        "tags": [
+          "UI"
+        ],
+        "summary": "Ui Query",
+        "operationId": "ui_query_ui_query_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_ui_query_ui_query_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/research": {
+      "post": {
+        "tags": [
+          "UI"
+        ],
+        "summary": "Ui Research",
+        "operationId": "ui_research_ui_research_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_ui_research_ui_research_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -673,6 +955,235 @@
           "timestamp"
         ],
         "title": "AgentStep"
+      },
+      "ArchitectRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 3,
+            "title": "Question"
+          },
+          "grounded": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grounded",
+            "description": "force retrieval from docs; when None, decide dynamically"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "ArchitectRequest"
+      },
+      "ArchitectResponse": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citations",
+            "default": []
+          },
+          "suggested_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Suggested Steps",
+            "default": []
+          },
+          "suggested_env_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Suggested Env Flags",
+            "default": []
+          },
+          "audit": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audit"
+          },
+          "suggest_feature": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggest Feature"
+          },
+          "feature_request": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feature Request"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "audit"
+        ],
+        "title": "ArchitectResponse"
+      },
+      "Body_ui_architect_ui_architect_post": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 3,
+            "title": "Question"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "grounded": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grounded"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "mode"
+        ],
+        "title": "Body_ui_architect_ui_architect_post"
+      },
+      "Body_ui_query_ui_query_post": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Question"
+          },
+          "grounded": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grounded"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "Body_ui_query_ui_query_post"
+      },
+      "Body_ui_research_ui_research_post": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Topic"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Steps",
+            "default": [
+              "search",
+              "fetch",
+              "summarize",
+              "risk_check"
+            ]
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic"
+        ],
+        "title": "Body_ui_research_ui_research_post"
       },
       "Citation": {
         "properties": {

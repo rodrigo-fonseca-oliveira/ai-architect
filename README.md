@@ -39,22 +39,69 @@ Client → FastAPI Gateway
     [Structured logs + Request IDs + Token/Cost tracker + RBAC stub]
 ```
 
-### 🧭 Architecture Diagram
+### Architect Agent Flow (scope: /architect, /architect/stream)
+```mermaid
+%% AI Architect Orchestration Diagram (accurate to current code)
+flowchart TD
+  subgraph ClientLayer[Client / UI / External API]
+    U[User question]
+  end
+
+  subgraph ArchitectLayer[Architect Agent]
+    A1[Intent and mode selection]
+    A2[Plan builder]
+    A3[Audit and cost tracking]
+  end
+
+  subgraph Governance[Governance, Observability and Storage]
+    DB[(Audit DB)]
+    F[FinOps metrics / Prometheus]
+    G[Grafana dashboards]
+    RBAC[RBAC / Security layer]
+  end
+
+  U --> A1 --> A2 --> A3
+  A3 --> DB
+  A3 --> F --> G
+  A3 --> RBAC
+
+  classDef main fill:#2563eb,stroke:#fff,color:#fff
+  classDef gov fill:#facc15,stroke:#fff,color:#000
+
+  class ArchitectLayer main
+  class Governance gov
+```
+
+Note: Architect outputs plans/citations and emits audit/metrics; it does not invoke other endpoints. An execution mode may be added later behind a feature flag.
+
+
+### System Architecture (scope: all endpoints/components)
+Note: Includes retrieval (DOCS_PATH scan), optional LLM synthesis, agent pipeline, governance, observability, and ML.
 ```mermaid
 flowchart LR
   A[Client / UI] -->|REST / JSON| B[FastAPI Gateway]
 
-  subgraph LLM_Layer
-    B --> C1[LLM / RAG Engine]
-    C1 --> C2[Vector Store: FAISS or Chroma]
-    C1 --> C3[Prompt Templates]
+  subgraph Routing
+    B --> R1[Router feature flagged]
+  end
+
+  subgraph Retrieval_and_Synthesis
+    B --> C1[Retriever DOCS_PATH scan]
+    C1 --> C3[Optional LLM synthesis]
+    C1 --> C4[Vector store future FAISS Chroma]
+    C3 --> C5[Prompt templates]
+  end
+
+  subgraph Memory
+    B --> M1[Short memory sqlite]
+    B --> M2[Long memory embeddings]
   end
 
   subgraph Governance_and_Compliance
     B --> D1[Audit Logger]
-    D1 --> D2[Audit DB: SQLite / Postgres]
-    D1 --> D3[Denylist / Compliance Rules]
-    D1 --> D4[Cost Tracker / FinOps Metrics]
+    D1 --> D2[Audit DB SQLite or Postgres]
+    D1 --> D3[Denylist Compliance Rules]
+    D1 --> D4[Cost Tracker FinOps Metrics]
   end
 
   subgraph Observability
@@ -63,15 +110,15 @@ flowchart LR
   end
 
   subgraph ML_Lifecycle
-    B --> F1[MLflow Model API /predict]
-    F1 --> F2[Model Registry]
-    F1 --> F3[Drift Detector / Retraining Pipeline]
+    B --> F1[MLflow Model API predict]
+    F1 --> F2[MLflow local store]
+    F1 --> F3[Drift Detector Retraining Pipeline]
   end
 
   subgraph Agentic_Pipeline
-    B --> G1[Agent Orchestrator /research]
-    G1 --> G2[Search Tool / Web Fetch]
-    G1 --> G3[Summarizer / Risk Checker]
+    B --> G1[Agent Orchestrator research]
+    G1 --> G2[Search Tool web fetch - AGENT_LIVE_MODE allowlist]
+    G1 --> G3[Summarizer Risk Checker]
     G1 --> D1
   end
 ```
@@ -265,11 +312,6 @@ flowchart LR
 * **Prompt Registry** in `prompts/*.yaml` (versioned, code-reviewed). Load via `app.utils.prompts.load_prompt(name, version)`.
 
 ---
-
-## Retrieval backend notes
-
-- Retrieval now uses the LangChain-backed path by default (legacy path removed). This resolves intermittent citation issues and simplifies configuration.
-- Multi-query and hyDE improvements are planned on top of the LC path.
 
 ## Local development and testing
 
