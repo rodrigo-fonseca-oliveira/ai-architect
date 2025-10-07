@@ -64,6 +64,7 @@ flowchart TD
 git clone https://github.com/rodrigo-fonseca-oliveira/ai-architect
 cd ai-architect
 cp .env.example .env
+# If you skip .env, export PROJECT_GUIDE_ENABLED=true to enable /architect
 
 # 1) Create environment
 python3 -m venv .venv
@@ -87,6 +88,7 @@ curl -sX POST localhost:8000/architect \
   -d '{"question":"How does the router decide intents?","mode":"brainstorm"}' | jq .
 ```
 **UI:** http://localhost:8000/architect/ui
+Note: /architect is feature-gated. Ensure PROJECT_GUIDE_ENABLED=true (in .env or environment) before calling it.
 
 ---
 
@@ -104,6 +106,16 @@ curl -sX POST localhost:8000/architect \
 Complete file map → `docs/components.md`
 
 ---
+
+## 📚 Documentation
+- [Docs index](docs/README.md)
+- [Getting started](docs/getting_started.md)
+- [API](docs/api.md)
+- [Deploy](docs/deploy.md)
+- [RAG](docs/rag.md) (vector backends: [docs/rag_vector_backends.md](docs/rag_vector_backends.md))
+- [Memory](docs/memory.md)
+- [Security](docs/security.md)
+- [Observability](docs/observability.md)
 
 ## 🧩 System Architecture
 ```mermaid
@@ -183,5 +195,5 @@ Starter prompts → `docs/llm_agent_streaming_prompts.md`
 ---
 
 ## 🧭 License
-Apache-2.0 (or MIT). See `LICENSE`.
+Apache-2.0. See `LICENSE`.
 
