@@ -50,6 +50,15 @@ Export/Import (long-term)
 Status endpoint (admin only)
 - GET /memory/status returns current config, a summary of short/long memory, cumulative pruning counters, and audit metadata
 
+Delete semantics and idempotency
+- DELETE /memory/short clears turns and summary for the given user_id+session_id. Returns cleared=true when the operation succeeds; safe to call repeatedly.
+- DELETE /memory/long clears all facts for the given user_id. When MEMORY_LONG_ENABLED=true, the endpoint returns cleared=true even if there was nothing to clear (idempotent semantics).
+
+Counters and pruning notes
+- memory_short_pruned and memory_long_pruned in endpoint audits reflect items pruned during that request only.
+- /memory/status aggregates cumulative pruning counters since process start: memory_short_pruned_total, memory_long_pruned_total.
+- Retention pruning occurs on reads; max facts/turns enforcement occurs on write or export as noted in code.
+
 Retention quick start
 - SHORT_MEMORY_RETENTION_DAYS=7; SHORT_MEMORY_MAX_TURNS_PER_SESSION=100
 - MEMORY_LONG_RETENTION_DAYS=180; MEMORY_LONG_MAX_FACTS=500
