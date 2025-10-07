@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.model_selection import train_test_split
 
-EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "ai-risk-monitor")
+EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "ai-architect")
 TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "./.mlruns")
 
 

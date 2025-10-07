@@ -21,7 +21,7 @@ Pinecone (planned)
   - LC_VECTOR_BACKEND=pinecone
   - PINECONE_API_KEY=...
   - PINECONE_ENVIRONMENT=...   # e.g., gcp-starter
-  - PINECONE_INDEX_NAME=ai-risk-monitor
+  - PINECONE_INDEX_NAME=ai-architect
   - (Optional) PINECONE_NAMESPACE=default
 - Behavior:
   - If LC_RAG_BACKEND=langchain and LC_VECTOR_BACKEND=pinecone, initialize Pinecone via LangChain using the configured embedding model.

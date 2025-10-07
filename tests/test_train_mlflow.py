@@ -3,7 +3,7 @@ import subprocess
 
 def test_train_mlflow(tmp_path, monkeypatch):
     monkeypatch.setenv("MLFLOW_TRACKING_URI", str(tmp_path / ".mlruns"))
-    monkeypatch.setenv("MLFLOW_EXPERIMENT_NAME", "ai-risk-monitor-test")
+    monkeypatch.setenv("MLFLOW_EXPERIMENT_NAME", "ai-architect-test")
 
     import sys
 

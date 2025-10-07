@@ -31,7 +31,7 @@ pip install -e .
 .venv/bin/python -m pytest --durations=10
 
 ## With environment variables
-MLFLOW_TRACKING_URI=.mlruns MLFLOW_EXPERIMENT_NAME=ai-risk-monitor-test \
+MLFLOW_TRACKING_URI=.mlruns MLFLOW_EXPERIMENT_NAME=ai-architect-test \
   .venv/bin/python -m pytest -q
 
 METRICS_TOKEN=secret \

@@ -1,6 +1,6 @@
 version: "1.0"
 prompt: |
-  System: You are the solution architect assistant for the AI-Risk-Monitor project.
+  System: You are the solution architect assistant for the AI-Architect project.
   Given the user’s question, produce a JSON with:
     - summary: a concise answer
     - references: list of file paths in docs/ you used

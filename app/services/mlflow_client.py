@@ -10,7 +10,7 @@ class MLflowClientWrapper:
             "MLFLOW_TRACKING_URI", "./.mlruns"
         )
         self.experiment = experiment or os.getenv(
-            "MLFLOW_EXPERIMENT_NAME", "ai-risk-monitor"
+            "MLFLOW_EXPERIMENT_NAME", "ai-architect"
         )
         mlflow.set_tracking_uri(self.tracking_uri)
         mlflow.set_experiment(self.experiment)

@@ -10,8 +10,8 @@ Prerequisites
 Quickstart (local)
 ```bash
 # 0) Clone & env
-git clone https://github.com/<you>/ai-risk-monitor
-cd ai-risk-monitor
+git clone https://github.com/rodrigo-fonseca-oliveira/ai-architect
+cd ai-architect
 cp .env.example .env  # fill in only if using hosted LLMs; local defaults work
 
 # 1) Create virtualenv and install

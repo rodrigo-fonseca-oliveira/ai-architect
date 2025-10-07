@@ -28,9 +28,7 @@ Highlights
 For deeper topics (API, RAG, memory, security, MLOps), see docs/README.md.
 
 ---
-
-## Quickstart
-
+![alt text](docs/images/ai-architect.png)
 ```
 Client → FastAPI Gateway
          ├── /query     (LLM + optional RAG) ─┐
@@ -41,29 +39,42 @@ Client → FastAPI Gateway
     [Structured logs + Request IDs + Token/Cost tracker + RBAC stub]
 ```
 
-Architecture (Mermaid)
-
+### 🧭 Architecture Diagram
 ```mermaid
 flowchart LR
-    T[Topic] --> S[search]
-    S --> F[fetch]
-    F --> U[summarize]
-    U --> R[risk_check]
+  A[Client / UI] -->|REST / JSON| B[FastAPI Gateway]
 
-    subgraph Audit
-      A1[step.name]
-      A2[inputs]
-      A3[outputs preview]
-      A4[latency & hash]
-    end
+  subgraph LLM_Layer
+    B --> C1[LLM / RAG Engine]
+    C1 --> C2[Vector Store: FAISS or Chroma]
+    C1 --> C3[Prompt Templates]
+  end
 
-    S --> A1
-    F --> A2
-    U --> A3
-    R --> A4
+  subgraph Governance_and_Compliance
+    B --> D1[Audit Logger]
+    D1 --> D2[Audit DB: SQLite / Postgres]
+    D1 --> D3[Denylist / Compliance Rules]
+    D1 --> D4[Cost Tracker / FinOps Metrics]
+  end
+
+  subgraph Observability
+    D4 --> E1[Prometheus Metrics]
+    E1 --> E2[Grafana Dashboard]
+  end
+
+  subgraph ML_Lifecycle
+    B --> F1[MLflow Model API /predict]
+    F1 --> F2[Model Registry]
+    F1 --> F3[Drift Detector / Retraining Pipeline]
+  end
+
+  subgraph Agentic_Pipeline
+    B --> G1[Agent Orchestrator /research]
+    G1 --> G2[Search Tool / Web Fetch]
+    G1 --> G3[Summarizer / Risk Checker]
+    G1 --> D1
+  end
 ```
-
-
 
 ---
 
@@ -71,8 +82,8 @@ flowchart LR
 
 ```bash
 # 0) Clone & env
-git clone https://github.com/<you>/ai-risk-monitor
-cd ai-risk-monitor
+git clone https://github.com/rodrigo-fonseca-oliveira/ai-architect
+cd ai-architect
 cp .env.example .env  # fill in keys if using a hosted LLM (or start with local/stub embeddings)
 
 # 1) Setup venv and install
@@ -104,13 +115,13 @@ curl localhost:8000/metrics | sed -n '1,80p'
 
 ### Architect UI
 
-- Unified UI at http://localhost:8000/ui (Architect-first).
+- Unified UI at http://localhost:8000/architect/ui (Architect-first).
 
 ### Architect mode
 
 - Dynamic grounding; no explicit mode required.
 - For the Project Guide feature set and behavior, see docs/project_guide_rag.md.
-- UI: open http://localhost:8000/ui
+- UI: open http://localhost:8000/architect/ui
 
 ## Learn more
 
@@ -128,24 +139,8 @@ See docs/README.md for the full documentation index. Useful deep links:
 
 <!-- Details moved to docs/api.md; keep README high-level. -->
 
-## Screenshots
 
-* `POST /query`
-  Input: `{ question: str, grounded?: bool }`
-  Output: `{ answer, citations[], request_id, tokens, cost_usd }`
-
-* `POST /research`
-  Input: `{ topic: str, steps?: ["search","fetch","summarize","risk_check"] }`
-  Output: `{ findings[], sources[], steps[], audit }`
-
-  Example:
-  ```bash
-  curl -X POST localhost:8000/research -H "Content-Type: application/json" \
-    -d '{
-      "topic": "Latest updates on GDPR and AI",
-      "steps": ["search","fetch","summarize","risk_check"]
-    }'
-  ```
+![alt text](docs/images/swagger.png)
 
   Notes:
   - Deterministic, offline-friendly by default (AGENT_LIVE_MODE=false).
@@ -352,6 +347,8 @@ uvicorn app.main:app --reload
 
   - If needed, import dashboard: docs/grafana/ai-monitor-dashboard.json
 
+![alt text](docs/images/grafana.png)
+
 ### CPU-only builds (PyTorch)
 - The Docker images pre-install CPU-only PyTorch wheels to avoid slow CUDA downloads.
 - This is done via:
@@ -526,6 +523,6 @@ Prefer a template? Try the prompts in docs/llm_agent_streaming_prompts.md to gen
 
 ## License
 
-Apache-2.0 (or MIT). Add `LICENSE` file.
+Apache-2.0 (or MIT).
 
 

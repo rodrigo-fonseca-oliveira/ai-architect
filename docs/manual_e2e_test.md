@@ -1,6 +1,6 @@
 # Manual End-to-End Test Plan
 
-This guide walks you through a comprehensive, reproducible end-to-end (E2E) test of the AI Risk & Compliance Monitor. It combines manual validation with scripted commands (curl/Python) and optional stress testing.
+This guide walks you through a comprehensive, reproducible end-to-end (E2E) test of the AI Architect. It combines manual validation with scripted commands (curl/Python) and optional stress testing.
 
 Prerequisites
 - Python 3.10+

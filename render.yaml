@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: ai-risk-monitor
+    name: ai-architect
     env: docker
     plan: free
     autoDeploy: true

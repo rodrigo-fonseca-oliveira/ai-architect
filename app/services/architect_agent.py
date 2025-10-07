@@ -11,7 +11,7 @@ def _build_messages(question: str, plan_parser: PydanticOutputParser, context_bl
     context_blocks = context_blocks or []
     fmt = plan_parser.get_format_instructions()
     system = (
-        "You are the solution architect assistant for the AI-Risk-Monitor project. "
+        "You are the solution architect assistant for the AI-Architect project. "
         "Respond ONLY with a JSON object that matches the provided schema."
     )
     messages: List[Dict[str, str]] = [

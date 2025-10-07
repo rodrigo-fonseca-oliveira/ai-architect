@@ -6,7 +6,7 @@ from app.main import app
 def test_predict_after_train(tmp_path, monkeypatch):
     # Train a model to ensure something to load
     monkeypatch.setenv("MLFLOW_TRACKING_URI", str(tmp_path / ".mlruns"))
-    monkeypatch.setenv("MLFLOW_EXPERIMENT_NAME", "ai-risk-monitor-test")
+    monkeypatch.setenv("MLFLOW_EXPERIMENT_NAME", "ai-architect-test")
 
     import subprocess
     import sys

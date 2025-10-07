@@ -1,4 +1,4 @@
-AI Risk & Compliance Monitor — Code Review (Session 1)
+AI Architect — Code Review (Session 1)
 
 Overview and scope
 - Purpose: Baseline review of code quality, structure, and doc-to-code alignment. No application code changes in this session.

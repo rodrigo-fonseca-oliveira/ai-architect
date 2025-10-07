@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
     logger.info({"event": "shutdown"})
 
 
-app = FastAPI(title="AI Risk & Compliance Monitor", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="AI Architect", version="0.1.0", lifespan=lifespan)
 
 # Exception handlers
 from .utils.exceptions import (

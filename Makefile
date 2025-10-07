@@ -1,5 +1,4 @@
-# Simple DX Makefile for ai-risk-monitor
-
+# Simple DX Makefile for ai-architect
 .PHONY: help venv install test serve lint ingest sweep freeze export-openapi
 
 help:

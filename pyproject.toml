@@ -9,9 +9,9 @@ where = ["."]
 include = ["app*", "db*", "ml*", "scripts*"]
 
 [project]
-name = "ai-risk-monitor"
+name = "ai-architect"
 version = "0.1.0"
-description = "FastAPI gateway for AI risk & compliance monitoring"
+description = "FastAPI gateway for AI Architect"
 requires-python = ">=3.10"
 authors = [{name = "Your Name"}]
 readme = "README.md"
