@@ -1,0 +1,40 @@
+# Code review progress index (resume-friendly)
+# Each task has a stable ID. Check off as we go across sessions.
+
+tasks:
+  - id: tests_baseline
+    title: Run pytest baseline and record results
+    status: pending
+  - id: api_alignment
+    title: API vs OpenAPI/docs alignment matrix
+    status: pending
+  - id: router_review
+    title: Router behavior, rules precedence, and docs alignment
+    status: pending
+  - id: memory_review
+    title: Memory (short/long) behavior, pruning, and docs alignment
+    status: pending
+  - id: pii_review
+    title: PII detection/remediation endpoints and privacy posture
+    status: pending
+  - id: risk_review
+    title: Risk scoring endpoint behavior and docs alignment
+    status: pending
+  - id: research_review
+    title: Research pipeline steps, RBAC, and audit fields
+    status: pending
+  - id: architect_review
+    title: Architect endpoints (guide/stream/ui) and documentation gaps
+    status: pending
+  - id: observability_review
+    title: Metrics, logging, and health checks
+    status: pending
+  - id: ml_mlflow_review
+    title: ML training, drift detection, and predict endpoint
+    status: pending
+  - id: security_rbac_review
+    title: RBAC consistency and security posture
+    status: pending
+  - id: docs_sync
+    title: Update docs to reflect current RAG ingestion and experimental endpoints
+    status: pending

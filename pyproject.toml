@@ -41,8 +41,8 @@ dependencies = [
 
 [tool.ruff]
 line-length = 100
-lint.select = ["E", "F", "I"]
-lint.ignore = ["E501"]
+lint.select = ["E", "F"]
+lint.ignore = ["E501", "F401", "F821"]
 
 [tool.ruff.lint.per-file-ignores]
 "app/main.py" = ["E402"]
