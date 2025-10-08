@@ -23,6 +23,7 @@ Behavior
 Intent names and aliases
 - Canonical intent names: qa, pii_detect, risk_score, policy_navigator, pii_remediation, other.
 - Alias: some tests/docs may use the shorthand policy_nav; the router emits policy_navigator in audit.router_intent.
+- When ROUTER_ENABLED=false, the builtin heuristics run and audit.router_backend is set to "simple".
 
 Try it
 - curl -X POST localhost:8000/query -H 'Content-Type: application/json' -d '{"question":"Email is bob@example.com","grounded": false}'
