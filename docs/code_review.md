@@ -78,3 +78,4 @@ Session log
 - Session 5: Router — audit.router_backend now reflects 'simple' when disabled; docs/tests updated.
 - Session 6: Risk — clarified flags (RISK_ML_ENABLED, RISK_THRESHOLD) and audit fields; tests green.
 - Session 7: Research — documented steps, flags (AGENT_LIVE_MODE, AGENT_URL_ALLOWLIST, DENYLIST), and per-step RBAC; added allowlist test; tests green.
+- Session 8: Observability — documented middleware behavior and audit persistence, added test to ensure /metrics isn’t counted; metrics/logging/audit tests green.
