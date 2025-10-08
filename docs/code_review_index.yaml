@@ -4,9 +4,7 @@
 #   . .venv/bin/activate && pytest -q
 
 tasks:
-  - id: tests_baseline
-    title: Run pytest baseline and record results
-    status: pending
+  
   
   - id: api_alignment
     title: API vs OpenAPI/docs alignment matrix
@@ -23,6 +21,4 @@ tasks:
   - id: security_rbac_review
     title: RBAC consistency and security posture
     status: pending
-  - id: docs_sync
-    title: Update docs to reflect current RAG ingestion and experimental endpoints
-    status: pending
+  

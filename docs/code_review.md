@@ -18,6 +18,11 @@ Repository map (high level)
 - Persistence: db/* (models, session)
 - ML: ml/* (train.py, drift.py, data/*.csv)
 - OpenAPI: docs/openapi.yaml (generated via scripts/export_openapi.py)
+
+Testing baseline
+- Command: . .venv/bin/activate && pytest -q
+- Result: PASS
+- Date: 2025-10-07
 - Docs: docs/*.md
 - Tests: tests/* (broad functional coverage by component and endpoint)
 
@@ -68,7 +73,7 @@ Recommendations (priority draft)
 - Provide a docker-compose override or Make target to run tests in a container for consistency across machines (optional).
 
 Next steps checklist
-- [ ] Run full test suite and record baseline in this file.
+- [x] Run full test suite and record baseline in this file.
 - [ ] Produce endpoint-by-endpoint delta table (docs vs code) with parameters/status codes.
 
 Session log
