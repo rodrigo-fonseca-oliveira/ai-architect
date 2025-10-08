@@ -59,9 +59,17 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
   - Notes: session_id enables short-term memory grouping when MEMORY_SHORT_ENABLED=true
   - Config: ROUTER_ENABLED (intent routing)
 - POST /risk — Risk scoring endpoint (analyst/admin)
-  - Request: { text: str }
-  - Response: { label, value, rationale, audit }
-- POST /policy_navigator — Policy Navigator Agent (analyst/admin)
+  - Request: { text: string }
+  - Response: { label: "low|medium|high", value: number in [0,1], rationale: string, audit: { ... } }
+  - Feature flags:
+    - RISK_ML_ENABLED (default: false) — when true, uses a deterministic pseudo-ML path
+    - RISK_THRESHOLD (default: 0.6) — classification threshold for ML path
+  - Behavior:
+    - Default is heuristic scoring based on risk keywords; audit.risk_score_method == "heuristic"
+    - When ML is enabled, audit.risk_score_method == "ml" and label/value are derived from the pseudo-ML signal
+  - Audit enrichment:
+    - audit.risk_score_label, audit.risk_score_value, audit.risk_score_method
+- POST /policy_navigator — Policy Navigator Agent (analyst/admin) — Policy Navigator Agent (analyst/admin)
   - Request: { question: string, max_subqs?: number }
   - Response: { recommendation: string, citations: [{source, snippet, page?}], audit: { steps[] } }
 - POST /pii_remediation — PII Remediation Agent (analyst/admin)

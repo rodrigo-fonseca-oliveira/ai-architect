@@ -12,14 +12,10 @@ tasks:
     title: API vs OpenAPI/docs alignment matrix
     status: done
   
-  - id: router_review
-    title: Router behavior, rules precedence, and docs alignment
-    status: pending
   
   
-  - id: risk_review
-    title: Risk scoring endpoint behavior and docs alignment
-    status: pending
+  
+  
   - id: research_review
     title: Research pipeline steps, RBAC, and audit fields
     status: pending
