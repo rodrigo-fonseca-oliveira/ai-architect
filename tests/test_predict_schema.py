@@ -8,7 +8,8 @@ def test_predict_schema_after_training(monkeypatch, tmp_path):
     monkeypatch.setenv("MLFLOW_TRACKING_URI", str(tmp_path / ".mlruns"))
     monkeypatch.setenv("MLFLOW_EXPERIMENT_NAME", "ai-architect-test")
 
-    import subprocess, sys
+    import subprocess
+    import sys
 
     subprocess.check_call([sys.executable, "ml/train.py"])  # create run/model
 
