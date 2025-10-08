@@ -7,6 +7,7 @@ from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.model_selection import train_test_split
+from mlflow.models.signature import infer_signature
 
 EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "ai-architect")
 TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "./.mlruns")
@@ -50,7 +51,16 @@ def main():
         mlflow.log_metric("accuracy", acc)
         mlflow.log_metric("auc", auc)
 
-        mlflow.sklearn.log_model(model, artifact_path="model")
+        # Log model signature and feature order for serving alignment
+        signature = infer_signature(X_train, model.predict(X_train))
+        # Include a small input example for clarity
+        input_example = X_train.head(2)
+        mlflow.sklearn.log_model(model, artifact_path="model", signature=signature, input_example=input_example)
+        # Log feature order as a simple artifact for serving-time enforcement
+        try:
+            mlflow.log_dict({"feature_order": list(df.columns)}, "feature_order.json")
+        except Exception:
+            pass
 
         print(f"Run ID: {run.info.run_id}, accuracy={acc:.3f}, auc={auc:.3f}")
 

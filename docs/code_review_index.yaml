@@ -19,9 +19,7 @@ tasks:
   
   
   
-  - id: ml_mlflow_review
-    title: ML training, drift detection, and predict endpoint
-    status: pending
+  
   - id: security_rbac_review
     title: RBAC consistency and security posture
     status: pending

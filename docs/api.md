@@ -52,6 +52,10 @@ This service is a FastAPI application for AI risk, compliance, and observability
 - GET /healthz — liveness probe
 - GET /metrics — Prometheus metrics (optionally token-protected)
 - POST /predict — model inference; requires role analyst/admin
+  - Request: { features: object, user_id?: string }
+  - Rules: features must be a non-empty object with numeric-like values
+  - Errors: 400 when features invalid or when no model is available (latest run not found)
+  - Notes: training is required first (see docs/ml.md)
 - POST /query
 
 Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, intent?: str }
