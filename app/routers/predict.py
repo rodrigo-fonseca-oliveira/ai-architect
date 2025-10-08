@@ -13,6 +13,18 @@ from db.session import get_session, init_db
 router = APIRouter()
 
 
+@router.get("/predict/schema", response_model=dict)
+def get_predict_schema(role: str = Depends(require_role("analyst"))):
+    """Return expected feature list and model metadata from latest run."""
+    client = MLflowClientWrapper()
+    try:
+        _model, run_id = client.load_latest_model()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"model load failed: {e}")
+    features = client.get_feature_order(run_id=run_id) or []
+    return {"features": features, "run_id": run_id, "experiment": client.get_experiment_name()}
+
+
 @router.post("/predict", response_model=PredictResponse)
 def post_predict(
     req: Request, payload: PredictRequest, role: str = Depends(require_role("analyst"))
@@ -30,17 +42,42 @@ def post_predict(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"model load failed: {e}")
 
-    # Prepare features: ensure order matches training
-    # This is a toy predictor: accept numeric-like values only
+    # Prepare features: enforce expected order/signature when available
     try:
         import numpy as np
 
         x = payload.features
-        # Keep stable order by sorting keys (toy example)
-        keys = sorted(x.keys())
-        vals = [float(x[k]) if x[k] is not None else 0.0 for k in keys]
+        # First, validate that provided values are numeric-like to surface clear errors
+        conv = {}
+        for k, v in x.items():
+            try:
+                conv[k] = float(v) if v is not None else 0.0
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"prediction failed: {e}")
+
+        # Attempt to load training feature order; fallback to sorted keys
+        feature_order = client.get_feature_order(run_id=run_id)
+        if feature_order:
+            # Validate exact match: no missing/extra features
+            provided = set(x.keys())
+            expected = set(feature_order)
+            missing = sorted(list(expected - provided))
+            extra = sorted(list(provided - expected))
+            if missing or extra:
+                msg = []
+                if missing:
+                    msg.append(f"missing features: {missing}")
+                if extra:
+                    msg.append(f"unknown features: {extra}")
+                raise HTTPException(status_code=400, detail="; ".join(msg))
+            keys = feature_order
+        else:
+            keys = sorted(x.keys())
+        vals = [conv.get(k, 0.0) for k in keys]
         arr = np.array(vals).reshape(1, -1)
         pred = model.predict(arr)[0]
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"prediction failed: {e}")
 
@@ -63,6 +100,8 @@ def post_predict(
         "compliance_flag": False,
         "prompt_hash": make_hash(str(payload.features)),
         "response_hash": make_hash(str(pred)),
+        "model_run_id": run_id,
+        "model_experiment": client.get_experiment_name(),
     }
 
     try:

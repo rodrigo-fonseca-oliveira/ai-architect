@@ -8,7 +8,7 @@
 - Artifacts logged per run:
   - model (sklearn)
   - model signature (inferred via mlflow.models.signature.infer_signature)
-  - feature_order.json: { feature_order: [ ... ] }
+  - feature_order.json (configurable via MLFLOW_FEATURE_ORDER_ARTIFACT): { feature_order: [ ... ] }
 - Quick start (local):
   - . .venv/bin/activate
   - export MLFLOW_TRACKING_URI=.mlruns; export MLFLOW_EXPERIMENT_NAME=ai-architect
