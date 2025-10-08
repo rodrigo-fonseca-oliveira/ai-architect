@@ -110,6 +110,11 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
     - user_id: optional string
     - intent: optional ("auto"|"qa"|"pii_detect"|"risk_score"|"other"); default "auto"
 - POST /research — multi-step research pipeline with auditing; step RBAC applies
+  - Request: { topic: string, steps?: ["search","fetch","summarize","risk_check"], user_id?: string }
+  - Response: { findings: [...], sources: [...], steps: [{name,inputs,outputs,latency_ms,hash,timestamp}], audit: {...} }
+  - Defaults: steps defaults to [search, fetch, summarize, risk_check]
+  - Flags: AGENT_LIVE_MODE, AGENT_URL_ALLOWLIST, DENYLIST
+  - See docs/agents.md for step details
 
 ## Router Agent
 

@@ -77,9 +77,4 @@ Next steps checklist
 Session log
 - Session 5: Router — audit.router_backend now reflects 'simple' when disabled; docs/tests updated.
 - Session 6: Risk — clarified flags (RISK_ML_ENABLED, RISK_THRESHOLD) and audit fields; tests green.
-
-Session log
-- Session 1: Baseline mapping; no code changes.
-- Session 2: API alignment — Fixed OpenAPI content types for /metrics and /architect/stream; added tests; docs updated.
-- Session 3: Memory — Verified retention, pruning counters, idempotent deletes; clarified docs; tests green.
-- Session 4: PII — Added request-level types override in /pii; updated docs; PII tests green.
+- Session 7: Research — documented steps, flags (AGENT_LIVE_MODE, AGENT_URL_ALLOWLIST, DENYLIST), and per-step RBAC; added allowlist test; tests green.

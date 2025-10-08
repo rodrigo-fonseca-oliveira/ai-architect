@@ -5,6 +5,23 @@ Architect agent and community loop
 - Users can copy the proposal (summary, steps, flags) into a GitHub issue; see docs/llm_agent_streaming_prompts.md for a ready-to-use prompt set.
 - This closes the loop between learning, brainstorming, and contribution, keeping the repo a living reference architecture.
 
+## Research Agent
+
+- Endpoint: POST /research (analyst/admin; per-step RBAC applies)
+- Steps:
+  1) search(topic) -> [{title, url}]
+  2) fetch(urls) -> [{url, text}]
+  3) summarize(docs) -> findings: [{title, summary, url}]
+  4) risk_check(topic, findings) -> flagged: bool (uses DENYLIST)
+- Config:
+  - AGENT_LIVE_MODE (default: false) — when true, fetch performs real HTTP GETs (limited)
+  - AGENT_URL_ALLOWLIST (comma-separated prefixes) — restricts live fetch to allowed domains/prefixes
+  - DENYLIST (comma-separated terms) — flags risky research content in risk_check
+- RBAC:
+  - fetch/search/summarize: analyst+
+  - risk_check: guest+
+- Audit: steps include {name, inputs, outputs.preview, latency_ms, hash, timestamp}
+
 ## Policy Navigator Agent
 
 - Endpoint: POST /policy_navigator (analyst/admin)

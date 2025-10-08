@@ -16,9 +16,7 @@ tasks:
   
   
   
-  - id: research_review
-    title: Research pipeline steps, RBAC, and audit fields
-    status: pending
+  
   - id: architect_review
     title: Architect endpoints (guide/stream/ui) and documentation gaps
     status: pending
