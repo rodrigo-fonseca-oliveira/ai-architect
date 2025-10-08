@@ -58,6 +58,7 @@ This service is a FastAPI application for AI risk, compliance, and observability
   - Notes: training is required first (see docs/ml.md); the server reorders inputs to the training feature order
 - GET /predict/schema — returns expected feature list and model metadata (analyst/admin)
   - Response: { features: [string], run_id: string, experiment: string }
+  - Notes: Artifacts names configurable via MLFLOW_MODEL_ARTIFACT_PATH and MLFLOW_FEATURE_ORDER_ARTIFACT; MLFLOW_MODEL_URI can override model selection; MLFLOW_MODEL_CACHE_TTL enables in-process caching.
 - POST /query
 
 Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, intent?: str }

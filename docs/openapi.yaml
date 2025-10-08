@@ -1,1827 +1,1162 @@
-{
-  "openapi": "3.1.0",
-  "info": {
-    "title": "AI Architect",
-    "version": "0.1.0"
-  },
-  "paths": {
-    "/healthz": {
-      "get": {
-        "summary": "Healthz",
-        "operationId": "healthz_healthz_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/metrics": {
-      "get": {
-        "summary": "Metrics",
-        "operationId": "metrics_metrics_get",
-        "parameters": [
-          {
-            "name": "X-Metrics-Token",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Metrics-Token"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/query": {
-      "post": {
-        "summary": "Post Query",
-        "operationId": "post_query_query_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/QueryRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/research": {
-      "post": {
-        "summary": "Post Research",
-        "operationId": "post_research_research_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResearchRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResearchResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/predict": {
-      "post": {
-        "summary": "Post Predict",
-        "operationId": "post_predict_predict_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PredictRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PredictResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/pii": {
-      "post": {
-        "summary": "Post Pii",
-        "operationId": "post_pii_pii_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PiiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PiiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/risk": {
-      "post": {
-        "summary": "Post Risk",
-        "operationId": "post_risk_risk_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RiskRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RiskResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/memory/short": {
-      "get": {
-        "summary": "Get Short Memory",
-        "operationId": "get_short_memory_memory_short_get",
-        "parameters": [
-          {
-            "name": "user_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "User Id"
-            }
-          },
-          {
-            "name": "session_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MemoryShortResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete Short Memory",
-        "operationId": "delete_short_memory_memory_short_delete",
-        "parameters": [
-          {
-            "name": "user_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "User Id"
-            }
-          },
-          {
-            "name": "session_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Short Memory Memory Short Delete"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/memory/long": {
-      "get": {
-        "summary": "Get Long Memory",
-        "operationId": "get_long_memory_memory_long_get",
-        "parameters": [
-          {
-            "name": "user_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "User Id"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Q"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MemoryLongResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete Long Memory",
-        "operationId": "delete_long_memory_memory_long_delete",
-        "parameters": [
-          {
-            "name": "user_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "User Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Long Memory Memory Long Delete"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/memory/status": {
-      "get": {
-        "summary": "Get Memory Status",
-        "operationId": "get_memory_status_memory_status_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Get Memory Status Memory Status Get"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/memory/long/export": {
-      "get": {
-        "summary": "Export Long Memory",
-        "operationId": "export_long_memory_memory_long_export_get",
-        "parameters": [
-          {
-            "name": "user_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "User Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MemoryLongResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/memory/long/import": {
-      "post": {
-        "summary": "Import Long Memory",
-        "operationId": "import_long_memory_memory_long_import_post",
-        "parameters": [
-          {
-            "name": "user_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "User Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MemoryImportPayload"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Import Long Memory Memory Long Import Post"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/policy_navigator": {
-      "post": {
-        "summary": "Post Policy Navigator",
-        "operationId": "post_policy_navigator_policy_navigator_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PolicyRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PolicyResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/pii_remediation": {
-      "post": {
-        "summary": "Post Pii Remediation",
-        "operationId": "post_pii_remediation_pii_remediation_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PiiRemediationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PiiRemediationResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/architect": {
-      "post": {
-        "tags": [
-          "Architect"
-        ],
-        "summary": "Post Architect",
-        "operationId": "post_architect_architect_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ArchitectRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ArchitectResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/architect/stream": {
-      "get": {
-        "summary": "Stream Architect",
-        "operationId": "stream_architect_architect_stream_get",
-        "parameters": [
-          {
-            "name": "question",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Question"
-            }
-          },
-          {
-            "name": "session_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Session Id"
-            }
-          },
-          {
-            "name": "user_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "User Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/architect/ui": {
-      "get": {
-        "tags": [
-          "Architect"
-        ],
-        "summary": "Get Ui",
-        "operationId": "get_ui_architect_ui_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ui": {
-      "get": {
-        "tags": [
-          "UI"
-        ],
-        "summary": "Get Ui",
-        "operationId": "get_ui_ui_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ui/architect": {
-      "post": {
-        "tags": [
-          "UI"
-        ],
-        "summary": "Ui Architect",
-        "operationId": "ui_architect_ui_architect_post",
-        "requestBody": {
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_ui_architect_ui_architect_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ui/query": {
-      "post": {
-        "tags": [
-          "UI"
-        ],
-        "summary": "Ui Query",
-        "operationId": "ui_query_ui_query_post",
-        "requestBody": {
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_ui_query_ui_query_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ui/research": {
-      "post": {
-        "tags": [
-          "UI"
-        ],
-        "summary": "Ui Research",
-        "operationId": "ui_research_ui_research_post",
-        "requestBody": {
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_ui_research_ui_research_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "AgentStep": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "inputs": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Inputs"
-          },
-          "outputs": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Outputs"
-          },
-          "latency_ms": {
-            "type": "integer",
-            "title": "Latency Ms"
-          },
-          "hash": {
-            "type": "string",
-            "title": "Hash"
-          },
-          "timestamp": {
-            "type": "string",
-            "title": "Timestamp"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "inputs",
-          "outputs",
-          "latency_ms",
-          "hash",
-          "timestamp"
-        ],
-        "title": "AgentStep"
-      },
-      "ArchitectRequest": {
-        "properties": {
-          "question": {
-            "type": "string",
-            "minLength": 3,
-            "title": "Question"
-          },
-          "grounded": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grounded",
-            "description": "force retrieval from docs; when None, decide dynamically"
-          },
-          "user_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Id"
-          },
-          "session_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Session Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "question"
-        ],
-        "title": "ArchitectRequest"
-      },
-      "ArchitectResponse": {
-        "properties": {
-          "answer": {
-            "type": "string",
-            "title": "Answer"
-          },
-          "citations": {
-            "items": {
-              "$ref": "#/components/schemas/Citation"
-            },
-            "type": "array",
-            "title": "Citations",
-            "default": []
-          },
-          "suggested_steps": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Suggested Steps",
-            "default": []
-          },
-          "suggested_env_flags": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Suggested Env Flags",
-            "default": []
-          },
-          "audit": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Audit"
-          },
-          "suggest_feature": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Suggest Feature"
-          },
-          "feature_request": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Feature Request"
-          }
-        },
-        "type": "object",
-        "required": [
-          "answer",
-          "audit"
-        ],
-        "title": "ArchitectResponse"
-      },
-      "Body_ui_architect_ui_architect_post": {
-        "properties": {
-          "question": {
-            "type": "string",
-            "minLength": 3,
-            "title": "Question"
-          },
-          "mode": {
-            "type": "string",
-            "title": "Mode"
-          },
-          "grounded": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grounded"
-          },
-          "role": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Role"
-          }
-        },
-        "type": "object",
-        "required": [
-          "question",
-          "mode"
-        ],
-        "title": "Body_ui_architect_ui_architect_post"
-      },
-      "Body_ui_query_ui_query_post": {
-        "properties": {
-          "question": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Question"
-          },
-          "grounded": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grounded"
-          },
-          "role": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Role"
-          }
-        },
-        "type": "object",
-        "required": [
-          "question"
-        ],
-        "title": "Body_ui_query_ui_query_post"
-      },
-      "Body_ui_research_ui_research_post": {
-        "properties": {
-          "topic": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Topic"
-          },
-          "steps": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Steps",
-            "default": [
-              "search",
-              "fetch",
-              "summarize",
-              "risk_check"
-            ]
-          },
-          "role": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Role"
-          }
-        },
-        "type": "object",
-        "required": [
-          "topic"
-        ],
-        "title": "Body_ui_research_ui_research_post"
-      },
-      "Citation": {
-        "properties": {
-          "source": {
-            "type": "string",
-            "title": "Source"
-          },
-          "page": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Page"
-          },
-          "snippet": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Snippet"
-          }
-        },
-        "type": "object",
-        "required": [
-          "source"
-        ],
-        "title": "Citation"
-      },
-      "Finding": {
-        "properties": {
-          "title": {
-            "type": "string",
-            "title": "Title"
-          },
-          "summary": {
-            "type": "string",
-            "title": "Summary"
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Url"
-          }
-        },
-        "type": "object",
-        "required": [
-          "title",
-          "summary"
-        ],
-        "title": "Finding"
-      },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
-          }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
-      },
-      "MemoryImportPayload": {
-        "properties": {
-          "facts": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Facts"
-          }
-        },
-        "type": "object",
-        "required": [
-          "facts"
-        ],
-        "title": "MemoryImportPayload"
-      },
-      "MemoryLongResponse": {
-        "properties": {
-          "facts": {
-            "items": {},
-            "type": "array",
-            "title": "Facts"
-          },
-          "audit": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Audit"
-          }
-        },
-        "type": "object",
-        "required": [
-          "facts",
-          "audit"
-        ],
-        "title": "MemoryLongResponse"
-      },
-      "MemoryShortResponse": {
-        "properties": {
-          "turns": {
-            "items": {},
-            "type": "array",
-            "title": "Turns"
-          },
-          "summary": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Summary"
-          },
-          "audit": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Audit"
-          }
-        },
-        "type": "object",
-        "required": [
-          "turns",
-          "audit"
-        ],
-        "title": "MemoryShortResponse"
-      },
-      "PiiRemediationRequest": {
-        "properties": {
-          "text": {
-            "type": "string",
-            "minLength": 3,
-            "title": "Text"
-          },
-          "return_snippets": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Return Snippets",
-            "default": true
-          },
-          "grounded": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grounded",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "text"
-        ],
-        "title": "PiiRemediationRequest"
-      },
-      "PiiRemediationResponse": {
-        "properties": {
-          "remediation": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Remediation"
-          },
-          "citations": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Citations",
-            "default": []
-          },
-          "audit": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Audit"
-          }
-        },
-        "type": "object",
-        "required": [
-          "remediation",
-          "audit"
-        ],
-        "title": "PiiRemediationResponse"
-      },
-      "PiiRequest": {
-        "properties": {
-          "text": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Text"
-          },
-          "types": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Types"
-          },
-          "grounded": {
-            "type": "boolean",
-            "title": "Grounded",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "text"
-        ],
-        "title": "PiiRequest"
-      },
-      "PiiResponse": {
-        "properties": {
-          "summary": {
-            "type": "string",
-            "title": "Summary"
-          },
-          "entities": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Entities"
-          },
-          "counts": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Counts"
-          },
-          "types_present": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Types Present"
-          },
-          "audit": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Audit"
-          }
-        },
-        "type": "object",
-        "required": [
-          "summary",
-          "entities",
-          "counts",
-          "types_present",
-          "audit"
-        ],
-        "title": "PiiResponse"
-      },
-      "PolicyRequest": {
-        "properties": {
-          "question": {
-            "type": "string",
-            "minLength": 3,
-            "title": "Question"
-          },
-          "max_subqs": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max Subqs",
-            "description": "Override max sub-questions"
-          }
-        },
-        "type": "object",
-        "required": [
-          "question"
-        ],
-        "title": "PolicyRequest"
-      },
-      "PolicyResponse": {
-        "properties": {
-          "recommendation": {
-            "type": "string",
-            "title": "Recommendation"
-          },
-          "citations": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Citations"
-          },
-          "audit": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Audit"
-          }
-        },
-        "type": "object",
-        "required": [
-          "recommendation",
-          "citations",
-          "audit"
-        ],
-        "title": "PolicyResponse"
-      },
-      "PredictRequest": {
-        "properties": {
-          "user_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Id"
-          },
-          "features": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Features"
-          }
-        },
-        "type": "object",
-        "required": [
-          "features"
-        ],
-        "title": "PredictRequest"
-      },
-      "PredictResponse": {
-        "properties": {
-          "prediction": {
-            "title": "Prediction"
-          },
-          "model_version": {
-            "type": "string",
-            "title": "Model Version"
-          },
-          "metrics": {
-            "additionalProperties": {
-              "type": "number"
-            },
-            "type": "object",
-            "title": "Metrics",
-            "default": {}
-          },
-          "audit": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Audit"
-          }
-        },
-        "type": "object",
-        "required": [
-          "prediction",
-          "model_version",
-          "audit"
-        ],
-        "title": "PredictResponse"
-      },
-      "QueryRequest": {
-        "properties": {
-          "question": {
-            "type": "string",
-            "minLength": 3,
-            "title": "Question"
-          },
-          "grounded": {
-            "type": "boolean",
-            "title": "Grounded",
-            "default": false
-          },
-          "user_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Id"
-          },
-          "session_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Session Id"
-          },
-          "intent": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Intent",
-            "description": "auto|qa|pii_detect|risk_score|other",
-            "default": "auto"
-          }
-        },
-        "type": "object",
-        "required": [
-          "question"
-        ],
-        "title": "QueryRequest"
-      },
-      "QueryResponse": {
-        "properties": {
-          "answer": {
-            "type": "string",
-            "title": "Answer"
-          },
-          "citations": {
-            "items": {
-              "$ref": "#/components/schemas/Citation"
-            },
-            "type": "array",
-            "title": "Citations",
-            "default": []
-          },
-          "audit": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Audit"
-          }
-        },
-        "type": "object",
-        "required": [
-          "answer",
-          "audit"
-        ],
-        "title": "QueryResponse"
-      },
-      "ResearchRequest": {
-        "properties": {
-          "topic": {
-            "type": "string",
-            "minLength": 3,
-            "title": "Topic"
-          },
-          "steps": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Steps"
-          },
-          "user_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "topic"
-        ],
-        "title": "ResearchRequest"
-      },
-      "ResearchResponse": {
-        "properties": {
-          "findings": {
-            "items": {
-              "$ref": "#/components/schemas/Finding"
-            },
-            "type": "array",
-            "title": "Findings"
-          },
-          "sources": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Sources"
-          },
-          "audit": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Audit"
-          },
-          "steps": {
-            "items": {
-              "$ref": "#/components/schemas/AgentStep"
-            },
-            "type": "array",
-            "title": "Steps"
-          }
-        },
-        "type": "object",
-        "required": [
-          "findings",
-          "sources",
-          "audit"
-        ],
-        "title": "ResearchResponse"
-      },
-      "RiskRequest": {
-        "properties": {
-          "text": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Text"
-          }
-        },
-        "type": "object",
-        "required": [
-          "text"
-        ],
-        "title": "RiskRequest"
-      },
-      "RiskResponse": {
-        "properties": {
-          "label": {
-            "type": "string",
-            "title": "Label"
-          },
-          "value": {
-            "type": "number",
-            "title": "Value"
-          },
-          "rationale": {
-            "type": "string",
-            "title": "Rationale"
-          },
-          "audit": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Audit"
-          }
-        },
-        "type": "object",
-        "required": [
-          "label",
-          "value",
-          "rationale",
-          "audit"
-        ],
-        "title": "RiskResponse"
-      },
-      "ValidationError": {
-        "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
-      }
-    }
-  }
-}
+openapi: 3.1.0
+info:
+  title: AI Architect
+  version: 0.1.0
+paths:
+  /healthz:
+    get:
+      summary: Healthz
+      operationId: healthz_healthz_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /metrics:
+    get:
+      summary: Metrics
+      operationId: metrics_metrics_get
+      parameters:
+      - name: X-Metrics-Token
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Metrics-Token
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/plain:
+              schema:
+                type: string
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /query:
+    post:
+      summary: Post Query
+      operationId: post_query_query_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /research:
+    post:
+      summary: Post Research
+      operationId: post_research_research_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResearchRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /predict/schema:
+    get:
+      summary: Get Predict Schema
+      description: Return expected feature list and model metadata from latest run.
+      operationId: get_predict_schema_predict_schema_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Get Predict Schema Predict Schema Get
+  /predict:
+    post:
+      summary: Post Predict
+      operationId: post_predict_predict_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredictRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /pii:
+    post:
+      summary: Post Pii
+      operationId: post_pii_pii_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PiiRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PiiResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /risk:
+    post:
+      summary: Post Risk
+      operationId: post_risk_risk_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /memory/short:
+    get:
+      summary: Get Short Memory
+      operationId: get_short_memory_memory_short_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: session_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Session Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryShortResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      summary: Delete Short Memory
+      operationId: delete_short_memory_memory_short_delete
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: session_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Session Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Delete Short Memory Memory Short Delete
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /memory/long:
+    get:
+      summary: Get Long Memory
+      operationId: get_long_memory_memory_long_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Q
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryLongResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      summary: Delete Long Memory
+      operationId: delete_long_memory_memory_long_delete
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Delete Long Memory Memory Long Delete
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /memory/status:
+    get:
+      summary: Get Memory Status
+      operationId: get_memory_status_memory_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Get Memory Status Memory Status Get
+  /memory/long/export:
+    get:
+      summary: Export Long Memory
+      operationId: export_long_memory_memory_long_export_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryLongResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /memory/long/import:
+    post:
+      summary: Import Long Memory
+      operationId: import_long_memory_memory_long_import_post
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemoryImportPayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Import Long Memory Memory Long Import Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /policy_navigator:
+    post:
+      summary: Post Policy Navigator
+      operationId: post_policy_navigator_policy_navigator_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /pii_remediation:
+    post:
+      summary: Post Pii Remediation
+      operationId: post_pii_remediation_pii_remediation_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PiiRemediationRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PiiRemediationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /architect:
+    post:
+      tags:
+      - Architect
+      summary: Post Architect
+      operationId: post_architect_architect_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArchitectRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArchitectResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /architect/stream:
+    get:
+      summary: Stream Architect
+      operationId: stream_architect_architect_stream_get
+      parameters:
+      - name: question
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Question
+      - name: session_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Session Id
+      - name: user_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /architect/ui:
+    get:
+      tags:
+      - Architect
+      summary: Get Ui
+      operationId: get_ui_architect_ui_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+  /ui:
+    get:
+      tags:
+      - UI
+      summary: Get Ui
+      operationId: get_ui_ui_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+  /ui/architect:
+    post:
+      tags:
+      - UI
+      summary: Ui Architect
+      operationId: ui_architect_ui_architect_post
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Body_ui_architect_ui_architect_post'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /ui/query:
+    post:
+      tags:
+      - UI
+      summary: Ui Query
+      operationId: ui_query_ui_query_post
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Body_ui_query_ui_query_post'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /ui/research:
+    post:
+      tags:
+      - UI
+      summary: Ui Research
+      operationId: ui_research_ui_research_post
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Body_ui_research_ui_research_post'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    AgentStep:
+      properties:
+        name:
+          type: string
+          title: Name
+        inputs:
+          additionalProperties: true
+          type: object
+          title: Inputs
+        outputs:
+          additionalProperties: true
+          type: object
+          title: Outputs
+        latency_ms:
+          type: integer
+          title: Latency Ms
+        hash:
+          type: string
+          title: Hash
+        timestamp:
+          type: string
+          title: Timestamp
+      type: object
+      required:
+      - name
+      - inputs
+      - outputs
+      - latency_ms
+      - hash
+      - timestamp
+      title: AgentStep
+    ArchitectRequest:
+      properties:
+        question:
+          type: string
+          minLength: 3
+          title: Question
+        grounded:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Grounded
+          description: force retrieval from docs; when None, decide dynamically
+        user_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User Id
+        session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Session Id
+      type: object
+      required:
+      - question
+      title: ArchitectRequest
+    ArchitectResponse:
+      properties:
+        answer:
+          type: string
+          title: Answer
+        citations:
+          items:
+            $ref: '#/components/schemas/Citation'
+          type: array
+          title: Citations
+          default: []
+        suggested_steps:
+          items:
+            type: string
+          type: array
+          title: Suggested Steps
+          default: []
+        suggested_env_flags:
+          items:
+            type: string
+          type: array
+          title: Suggested Env Flags
+          default: []
+        audit:
+          additionalProperties: true
+          type: object
+          title: Audit
+        suggest_feature:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Suggest Feature
+        feature_request:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Feature Request
+      type: object
+      required:
+      - answer
+      - audit
+      title: ArchitectResponse
+    Body_ui_architect_ui_architect_post:
+      properties:
+        question:
+          type: string
+          minLength: 3
+          title: Question
+        mode:
+          type: string
+          title: Mode
+        grounded:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Grounded
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+      type: object
+      required:
+      - question
+      - mode
+      title: Body_ui_architect_ui_architect_post
+    Body_ui_query_ui_query_post:
+      properties:
+        question:
+          type: string
+          minLength: 1
+          title: Question
+        grounded:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Grounded
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+      type: object
+      required:
+      - question
+      title: Body_ui_query_ui_query_post
+    Body_ui_research_ui_research_post:
+      properties:
+        topic:
+          type: string
+          minLength: 1
+          title: Topic
+        steps:
+          items:
+            type: string
+          type: array
+          title: Steps
+          default:
+          - search
+          - fetch
+          - summarize
+          - risk_check
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+      type: object
+      required:
+      - topic
+      title: Body_ui_research_ui_research_post
+    Citation:
+      properties:
+        source:
+          type: string
+          title: Source
+        page:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Page
+        snippet:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Snippet
+      type: object
+      required:
+      - source
+      title: Citation
+    Finding:
+      properties:
+        title:
+          type: string
+          title: Title
+        summary:
+          type: string
+          title: Summary
+        url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Url
+      type: object
+      required:
+      - title
+      - summary
+      title: Finding
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    MemoryImportPayload:
+      properties:
+        facts:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Facts
+      type: object
+      required:
+      - facts
+      title: MemoryImportPayload
+    MemoryLongResponse:
+      properties:
+        facts:
+          items: {}
+          type: array
+          title: Facts
+        audit:
+          additionalProperties: true
+          type: object
+          title: Audit
+      type: object
+      required:
+      - facts
+      - audit
+      title: MemoryLongResponse
+    MemoryShortResponse:
+      properties:
+        turns:
+          items: {}
+          type: array
+          title: Turns
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        audit:
+          additionalProperties: true
+          type: object
+          title: Audit
+      type: object
+      required:
+      - turns
+      - audit
+      title: MemoryShortResponse
+    PiiRemediationRequest:
+      properties:
+        text:
+          type: string
+          minLength: 3
+          title: Text
+        return_snippets:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Return Snippets
+          default: true
+        grounded:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Grounded
+          default: false
+      type: object
+      required:
+      - text
+      title: PiiRemediationRequest
+    PiiRemediationResponse:
+      properties:
+        remediation:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Remediation
+        citations:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Citations
+          default: []
+        audit:
+          additionalProperties: true
+          type: object
+          title: Audit
+      type: object
+      required:
+      - remediation
+      - audit
+      title: PiiRemediationResponse
+    PiiRequest:
+      properties:
+        text:
+          type: string
+          minLength: 1
+          title: Text
+        types:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Types
+        grounded:
+          type: boolean
+          title: Grounded
+          default: false
+      type: object
+      required:
+      - text
+      title: PiiRequest
+    PiiResponse:
+      properties:
+        summary:
+          type: string
+          title: Summary
+        entities:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Entities
+        counts:
+          additionalProperties: true
+          type: object
+          title: Counts
+        types_present:
+          items:
+            type: string
+          type: array
+          title: Types Present
+        audit:
+          additionalProperties: true
+          type: object
+          title: Audit
+      type: object
+      required:
+      - summary
+      - entities
+      - counts
+      - types_present
+      - audit
+      title: PiiResponse
+    PolicyRequest:
+      properties:
+        question:
+          type: string
+          minLength: 3
+          title: Question
+        max_subqs:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Subqs
+          description: Override max sub-questions
+      type: object
+      required:
+      - question
+      title: PolicyRequest
+    PolicyResponse:
+      properties:
+        recommendation:
+          type: string
+          title: Recommendation
+        citations:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Citations
+        audit:
+          additionalProperties: true
+          type: object
+          title: Audit
+      type: object
+      required:
+      - recommendation
+      - citations
+      - audit
+      title: PolicyResponse
+    PredictRequest:
+      properties:
+        user_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User Id
+        features:
+          additionalProperties: true
+          type: object
+          title: Features
+      type: object
+      required:
+      - features
+      title: PredictRequest
+    PredictResponse:
+      properties:
+        prediction:
+          title: Prediction
+        model_version:
+          type: string
+          title: Model Version
+        metrics:
+          additionalProperties:
+            type: number
+          type: object
+          title: Metrics
+          default: {}
+        audit:
+          additionalProperties: true
+          type: object
+          title: Audit
+      type: object
+      required:
+      - prediction
+      - model_version
+      - audit
+      title: PredictResponse
+    QueryRequest:
+      properties:
+        question:
+          type: string
+          minLength: 3
+          title: Question
+        grounded:
+          type: boolean
+          title: Grounded
+          default: false
+        user_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User Id
+        session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Session Id
+        intent:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Intent
+          description: auto|qa|pii_detect|risk_score|other
+          default: auto
+      type: object
+      required:
+      - question
+      title: QueryRequest
+    QueryResponse:
+      properties:
+        answer:
+          type: string
+          title: Answer
+        citations:
+          items:
+            $ref: '#/components/schemas/Citation'
+          type: array
+          title: Citations
+          default: []
+        audit:
+          additionalProperties: true
+          type: object
+          title: Audit
+      type: object
+      required:
+      - answer
+      - audit
+      title: QueryResponse
+    ResearchRequest:
+      properties:
+        topic:
+          type: string
+          minLength: 3
+          title: Topic
+        steps:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Steps
+        user_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User Id
+      type: object
+      required:
+      - topic
+      title: ResearchRequest
+    ResearchResponse:
+      properties:
+        findings:
+          items:
+            $ref: '#/components/schemas/Finding'
+          type: array
+          title: Findings
+        sources:
+          items:
+            type: string
+          type: array
+          title: Sources
+        audit:
+          additionalProperties: true
+          type: object
+          title: Audit
+        steps:
+          items:
+            $ref: '#/components/schemas/AgentStep'
+          type: array
+          title: Steps
+      type: object
+      required:
+      - findings
+      - sources
+      - audit
+      title: ResearchResponse
+    RiskRequest:
+      properties:
+        text:
+          type: string
+          minLength: 1
+          title: Text
+      type: object
+      required:
+      - text
+      title: RiskRequest
+    RiskResponse:
+      properties:
+        label:
+          type: string
+          title: Label
+        value:
+          type: number
+          title: Value
+        rationale:
+          type: string
+          title: Rationale
+        audit:
+          additionalProperties: true
+          type: object
+          title: Audit
+      type: object
+      required:
+      - label
+      - value
+      - rationale
+      - audit
+      title: RiskResponse
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError

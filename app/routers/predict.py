@@ -18,7 +18,7 @@ def get_predict_schema(role: str = Depends(require_role("analyst"))):
     """Return expected feature list and model metadata from latest run."""
     client = MLflowClientWrapper()
     try:
-        _model, run_id = client.load_latest_model()
+        _model, run_id, _model_uri = client.load_latest_model()
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"model load failed: {e}")
     features = client.get_feature_order(run_id=run_id) or []
@@ -38,7 +38,7 @@ def post_predict(
 
     client = MLflowClientWrapper()
     try:
-        model, run_id = client.load_latest_model()
+        model, run_id, model_uri = client.load_latest_model()
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"model load failed: {e}")
 
@@ -102,6 +102,7 @@ def post_predict(
         "response_hash": make_hash(str(pred)),
         "model_run_id": run_id,
         "model_experiment": client.get_experiment_name(),
+        "model_uri": model_uri,
     }
 
     try:
