@@ -34,6 +34,33 @@ Architect agent and community loop
   - POLICY_NAV_MAX_SUBQS (default: 3)
 - Audit: includes step entries for decompose, retrieve, synthesize with inputs/outputs preview and latency
 
+## Architect Agent
+
+- Endpoints:
+  - POST /architect — returns an ArchitectResponse with answer, citations (when grounded), suggested_steps, suggested_env_flags, and audit
+  - GET /architect/stream — Server-Sent Events (SSE) stream for progressive updates
+  - GET /architect/ui — HTML chat UI
+- Flags:
+  - PROJECT_GUIDE_ENABLED (default: false) — enables /architect API; UI shows a badge when disabled
+  - LLM_ENABLE_ARCHITECT (default: false) — when true, uses LLM-backed agent for plan generation
+  - DOCS_PATH — path to docs corpus for grounding; RAG flags apply
+  - RAG_MULTI_QUERY_ENABLED, RAG_MULTI_QUERY_COUNT, RAG_HYDE_ENABLED — retrieval behavior
+- SSE event contract (/architect/stream):
+  - event: meta
+    data: { "provider": string|null, "model": string|null, "grounded_used": bool|null }
+  - event: summary
+    data: string — a human-readable summary; may occur once
+  - event: steps
+    data: [string] — suggested steps (optional)
+  - event: flags
+    data: [string] — suggested env flags (optional)
+  - event: citations
+    data: [ { source: string, page?: number|null, snippet?: string|null } ] (optional)
+  - event: feature
+    data: { title?: string, summary?: string, steps?: [string], flags?: [string], citations?: [...] } (optional CTA)
+  - event: audit
+    data: { ... } — final audit metadata (tokens/cost if LLM used, rag flags, grounded_used, etc.)
+
 ## PII Remediation Agent
 
 - Endpoint: POST /pii_remediation (analyst/admin)

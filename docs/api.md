@@ -126,5 +126,16 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
 - Audit enrichment: router_backend and router_intent are included in the /query response audit field.
 - When intent=pii_detect, the answer summarizes detections and the audit includes pii_entities_count, pii_types, and pii_counts.
 
+## Architect
 
-See Swagger (/docs) for full request/response schemas and try-it-out.
+- POST /architect (requires PROJECT_GUIDE_ENABLED=true)
+  - Request: { question: string (min 3), grounded?: boolean|null, user_id?: string, session_id?: string }
+  - Response: { answer: string, citations?: [Citation], suggested_steps?: [string], suggested_env_flags?: [string], audit: {...}, suggest_feature?: bool, feature_request?: object }
+  - Flags: PROJECT_GUIDE_ENABLED, LLM_ENABLE_ARCHITECT, DOCS_PATH, RAG flags
+- GET /architect/stream (SSE)
+  - Content-Type: text/event-stream
+  - Event contract: see docs/agents.md (Architect Agent)
+- GET /architect/ui
+  - Content-Type: text/html
+
+See docs/agents.md for details on SSE events and flags.

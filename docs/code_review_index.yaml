@@ -17,9 +17,7 @@ tasks:
   
   
   
-  - id: architect_review
-    title: Architect endpoints (guide/stream/ui) and documentation gaps
-    status: pending
+  
   
   - id: ml_mlflow_review
     title: ML training, drift detection, and predict endpoint
