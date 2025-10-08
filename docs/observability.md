@@ -35,3 +35,9 @@ scrape_configs:
 ## Logging
 - JSON logs include: level, message, logger, request_id (if present), and exception info.
 - Set log level via LOG_LEVEL (default INFO).
+- Request middleware logs every request with event=request, method, path, status_code, request_id, latency_ms.
+- /metrics requests are excluded from request counters and latency histograms by middleware.
+
+## Audit
+- Audit writes are best-effort; failures are logged and do not fail the request path.
+- Fields persisted: request_id, endpoint, user_id, created_at, tokens_prompt, tokens_completion, cost_usd, latency_ms, compliance_flag, prompt_hash, response_hash.

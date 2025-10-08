@@ -7,6 +7,9 @@ Environment variables
   - Additional base types available: ipv6, iban, passport
 - PII_LOCALES: comma-separated locales to enable locale-specific patterns (e.g., US,UK,CA,DE)
 
+Request-level filtering
+- The /pii endpoint accepts an optional types array in the request body to override enabled base types for that request only (e.g., ["ssn"]). Locales remain configured via PII_LOCALES.
+
 Base patterns
 - email: standard username@domain.tld format
 - phone: E.164-like and common national formats, supporting separators and parentheses

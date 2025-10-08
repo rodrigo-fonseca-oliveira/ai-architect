@@ -91,15 +91,15 @@ def _active_locales_from_env() -> List[str]:
     return [t.strip().upper() for t in raw.split(",") if t.strip()]
 
 
-def _compile_active_patterns() -> Dict[str, re.Pattern]:
+def _compile_active_patterns(types_override: list[str] | None = None, locales_override: list[str] | None = None) -> Dict[str, re.Pattern]:
     pats: Dict[str, re.Pattern] = {}
-    active_types = set(_active_types_from_env())
+    active_types = set(types_override if types_override is not None else _active_types_from_env())
     # base
     for name, pat in BASE_PATTERNS.items():
         if name in active_types:
             pats[name] = pat
     # locale
-    active_locales = set(_active_locales_from_env())
+    active_locales = set((t.strip().upper() for t in (locales_override or []))) if locales_override is not None else set(_active_locales_from_env())
     for loc in active_locales:
         for lname, pat in LOCALE_PATTERNS.get(loc, {}).items():
             # expose with plain type names but keep locale suffix
@@ -107,17 +107,17 @@ def _compile_active_patterns() -> Dict[str, re.Pattern]:
     return pats
 
 
-def detect_pii(text: str) -> Dict[str, Any]:
+def detect_pii(text: str, types: list[str] | None = None, locales: list[str] | None = None) -> Dict[str, Any]:
     entities: List[Dict[str, Any]] = []
     counts: Dict[str, int] = {}
 
     # Compile active patterns on each call to respect dynamic env changes in tests/runtime
-    active_patterns = _compile_active_patterns()
+    active_patterns = _compile_active_patterns(types_override=types, locales_override=locales)
 
     sample = (text or "")[:5000]
     for ptype, pat in active_patterns.items():
-        # respect PII_TYPES on dynamic calls as well (env can change between calls)
-        base_types = set(_active_types_from_env())
+        # respect request-level types override too; otherwise env-based defaults
+        base_types = set(types or _active_types_from_env())
         if ptype in BASE_PATTERNS and ptype not in base_types:
             continue
         for m in pat.finditer(sample):

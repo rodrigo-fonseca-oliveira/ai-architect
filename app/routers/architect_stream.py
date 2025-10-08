@@ -34,7 +34,17 @@ async def _gen_sse(plan: Dict[str, Any], audit: Dict[str, Any]) -> AsyncGenerato
     # Final audit
     yield f"event: audit\ndata: {json.dumps(audit)}\n\n".encode()
 
-@router.get("/architect/stream")
+@router.get(
+    "/architect/stream",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "content": {
+                "text/event-stream": {"schema": {"type": "string"}},
+            }
+        }
+    },
+)
 async def stream_architect(request: Request, question: str | None = None, session_id: str | None = None, user_id: str | None = None):
     # Defensive guard: no-op stream for empty/short questions
     q = (question or "").strip()

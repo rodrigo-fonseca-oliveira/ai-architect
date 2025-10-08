@@ -40,7 +40,7 @@ def post_pii(req: Request, payload: PiiRequest):
 
     start = time.perf_counter()
     # Detect
-    result = detect_pii(payload.text)
+    result = detect_pii(payload.text, types=payload.types)
     if result.get("total", 0) > 0:
         parts = [f"{k}({v})" for k, v in sorted(result.get("counts", {}).items())]
         summary = ", ".join(parts)

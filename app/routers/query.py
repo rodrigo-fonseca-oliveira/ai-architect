@@ -439,9 +439,10 @@ def post_query(req: Request, payload: QueryRequest):
         except Exception:
             pass
     try:
-        from app.services.router import get_backend_meta
+        # Reflect actual router mode in audit: rules_v2 when enabled, simple when disabled
+        from app.services import router as _router_svc
 
-        audit.router_backend = get_backend_meta()
+        audit.router_backend = _router_svc.get_backend_meta() if _router_svc.is_enabled() else "simple"
         audit.router_intent = intent
         audit_dict["router_backend"] = audit.router_backend
         audit_dict["router_intent"] = audit.router_intent

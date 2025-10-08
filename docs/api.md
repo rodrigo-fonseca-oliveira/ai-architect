@@ -52,6 +52,13 @@ This service is a FastAPI application for AI risk, compliance, and observability
 - GET /healthz — liveness probe
 - GET /metrics — Prometheus metrics (optionally token-protected)
 - POST /predict — model inference; requires role analyst/admin
+  - Request: { features: object, user_id?: string }
+  - Rules: features must be a non-empty object with numeric-like values; exact feature set must match training
+  - Errors: 400 when features invalid/mismatch or when no model is available
+  - Notes: training is required first (see docs/ml.md); the server reorders inputs to the training feature order
+- GET /predict/schema — returns expected feature list and model metadata (analyst/admin)
+  - Response: { features: [string], run_id: string, experiment: string }
+  - Notes: Artifacts names configurable via MLFLOW_MODEL_ARTIFACT_PATH and MLFLOW_FEATURE_ORDER_ARTIFACT; MLFLOW_MODEL_URI can override model selection; MLFLOW_MODEL_CACHE_TTL enables in-process caching.
 - POST /query
 
 Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, intent?: str }
@@ -59,9 +66,17 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
   - Notes: session_id enables short-term memory grouping when MEMORY_SHORT_ENABLED=true
   - Config: ROUTER_ENABLED (intent routing)
 - POST /risk — Risk scoring endpoint (analyst/admin)
-  - Request: { text: str }
-  - Response: { label, value, rationale, audit }
-- POST /policy_navigator — Policy Navigator Agent (analyst/admin)
+  - Request: { text: string }
+  - Response: { label: "low|medium|high", value: number in [0,1], rationale: string, audit: { ... } }
+  - Feature flags:
+    - RISK_ML_ENABLED (default: false) — when true, uses a deterministic pseudo-ML path
+    - RISK_THRESHOLD (default: 0.6) — classification threshold for ML path
+  - Behavior:
+    - Default is heuristic scoring based on risk keywords; audit.risk_score_method == "heuristic"
+    - When ML is enabled, audit.risk_score_method == "ml" and label/value are derived from the pseudo-ML signal
+  - Audit enrichment:
+    - audit.risk_score_label, audit.risk_score_value, audit.risk_score_method
+- POST /policy_navigator — Policy Navigator Agent (analyst/admin) — Policy Navigator Agent (analyst/admin)
   - Request: { question: string, max_subqs?: number }
   - Response: { recommendation: string, citations: [{source, snippet, page?}], audit: { steps[] } }
 - POST /pii_remediation — PII Remediation Agent (analyst/admin)
@@ -102,6 +117,11 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
     - user_id: optional string
     - intent: optional ("auto"|"qa"|"pii_detect"|"risk_score"|"other"); default "auto"
 - POST /research — multi-step research pipeline with auditing; step RBAC applies
+  - Request: { topic: string, steps?: ["search","fetch","summarize","risk_check"], user_id?: string }
+  - Response: { findings: [...], sources: [...], steps: [{name,inputs,outputs,latency_ms,hash,timestamp}], audit: {...} }
+  - Defaults: steps defaults to [search, fetch, summarize, risk_check]
+  - Flags: AGENT_LIVE_MODE, AGENT_URL_ALLOWLIST, DENYLIST
+  - See docs/agents.md for step details
 
 ## Router Agent
 
@@ -113,5 +133,16 @@ Request: { question: str, grounded?: bool, user_id?: str, session_id?: str, inte
 - Audit enrichment: router_backend and router_intent are included in the /query response audit field.
 - When intent=pii_detect, the answer summarizes detections and the audit includes pii_entities_count, pii_types, and pii_counts.
 
+## Architect
 
-See Swagger (/docs) for full request/response schemas and try-it-out.
+- POST /architect (requires PROJECT_GUIDE_ENABLED=true)
+  - Request: { question: string (min 3), grounded?: boolean|null, user_id?: string, session_id?: string }
+  - Response: { answer: string, citations?: [Citation], suggested_steps?: [string], suggested_env_flags?: [string], audit: {...}, suggest_feature?: bool, feature_request?: object }
+  - Flags: PROJECT_GUIDE_ENABLED, LLM_ENABLE_ARCHITECT, DOCS_PATH, RAG flags
+- GET /architect/stream (SSE)
+  - Content-Type: text/event-stream
+  - Event contract: see docs/agents.md (Architect Agent)
+- GET /architect/ui
+  - Content-Type: text/html
+
+See docs/agents.md for details on SSE events and flags.
