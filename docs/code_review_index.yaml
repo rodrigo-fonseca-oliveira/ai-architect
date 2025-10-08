@@ -8,15 +8,15 @@ tasks:
     title: Run pytest baseline and record results
     status: pending
   
+  - id: api_alignment
+    title: API vs OpenAPI/docs alignment matrix
+    status: done
+  
   - id: router_review
     title: Router behavior, rules precedence, and docs alignment
     status: pending
-  - id: memory_review
-    title: Memory (short/long) behavior, pruning, and docs alignment
-    status: pending
-  - id: pii_review
-    title: PII detection/remediation endpoints and privacy posture
-    status: pending
+  
+  
   - id: risk_review
     title: Risk scoring endpoint behavior and docs alignment
     status: pending

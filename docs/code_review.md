@@ -49,11 +49,10 @@ Quality notes (initial scan)
 - Performance: synchronous CPU-bound work mostly light; RAG path uses filesystem scans; long operations (MLflow, vector ops) are not on request path except predict — acceptable for reference implementation.
 - Testing: extensive functional tests; includes router rules, RAG flags, metrics, PII, risk, memory, LLM audit, drift, MLflow train — strong coverage by behavior.
 
-Doc vs code drift (early findings)
-- Architect endpoints (/architect, /architect/stream, /architect/ui) exist and are tested but not present in docs/openapi.yaml — consider adding to docs (or explicitly marking as experimental).
-- scripts/ingest_docs.py is now a validation no-op (no vector store); docs mention LangChain mode and ingestion as optional — OK but clarify in docs that ingestion simply validates docs path in current version.
-- Some docs reference vector store specifics historically; current code paths rely on a lightweight filesystem scan in services/langchain_rag.py — consider updating docs/rag.md accordingly.
-- Metrics names in docs: app_requests_total, app_request_latency_seconds, app_tokens_total, app_cost_usd_total — match code — OK.
+Doc vs code drift (current)
+- Architect endpoints are present in OpenAPI; content types corrected (/metrics -> text/plain; /architect/stream -> text/event-stream).
+- RAG ingestion is a lightweight filesystem scan; docs updated accordingly in RAG section.
+- PII: Request-level types override supported via payload.types; locales via env.
 
 Security and privacy posture (initial)
 - PII: /pii and /pii_remediation enforce analyst/admin; pii_detector used with best-effort; audit includes counts and types — OK.
@@ -76,5 +75,7 @@ Next steps checklist
 - [ ] Deeper review: MLflow integration and predictable local runs.
 
 Session log
-- Created by: code review session 1
-- Date: PLACEHOLDER_DATE
+- Session 1: Baseline mapping; no code changes.
+- Session 2: API alignment — Fixed OpenAPI content types for /metrics and /architect/stream; added tests; docs updated.
+- Session 3: Memory — Verified retention, pruning counters, idempotent deletes; clarified docs; tests green.
+- Session 4: PII — Added request-level types override in /pii; updated docs; PII tests green.
