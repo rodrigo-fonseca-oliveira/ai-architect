@@ -58,13 +58,13 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
             prefix = load_summary(uid, sid) or "\n".join(f"{r}: {c}" for r, c in turns[-5:])  # last 5 turns
             if prefix:
                 memory_context_block = f"Conversation context:\n{prefix}"
-            # Bump cumulative counter
-            try:
-                from app.routers import memory as memory_router_mod
-                memory_router_mod._memory_short_pruned_total += int(memory_short_pruned)
-            except Exception:
-                pass
-        except Exception:
+            # Note: do not bump router-level globals from service; keep metrics in audit only
+        except Exception as e:
+            if os.getenv("MEMORY_DEBUG", "").lower() in ("1","true","yes","on"):
+                try:
+                    print(f"[MEMORY_DEBUG] memory op error: {e}")
+                except Exception:
+                    pass
             pass
 
     # 1b) Long-term memory: retrieve relevant facts
@@ -78,13 +78,13 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
             if facts:
                 snippet = "\n".join(f"- {f['text']}" for f in facts)
                 facts_context_block = f"Relevant background facts:\n{snippet}"
-            # Bump cumulative counter
-            try:
-                from app.routers import memory as memory_router_mod
-                memory_router_mod._memory_long_pruned_total += int(memory_long_pruned)
-            except Exception:
-                pass
-        except Exception:
+            # Note: do not bump router-level globals from service; keep metrics in audit only
+        except Exception as e:
+            if os.getenv("MEMORY_DEBUG", "").lower() in ("1","true","yes","on"):
+                try:
+                    print(f"[MEMORY_DEBUG] memory op error: {e}")
+                except Exception:
+                    pass
             pass
 
     # 2) Retrieval
@@ -157,8 +157,13 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
                 f"Request: {question[:60]}" if question else "Feature request"
             )
             plan.tone_hint = plan.tone_hint or ("exploratory" if not grounded_used else "actionable")
-    except Exception:
-        pass
+    except Exception as e:
+            if os.getenv("MEMORY_DEBUG", "").lower() in ("1","true","yes","on"):
+                try:
+                    print(f"[MEMORY_DEBUG] memory op error: {e}")
+                except Exception:
+                    pass
+            pass
 
     # 6) Save to memory after generating plan
     if short_enabled:
@@ -171,7 +176,12 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
             save_turn(uid, sid, "assistant", assistant_response)
             memory_short_writes = 2
             summary_updated = update_summary_if_needed(uid, sid)
-        except Exception:
+        except Exception as e:
+            if os.getenv("MEMORY_DEBUG", "").lower() in ("1","true","yes","on"):
+                try:
+                    print(f"[MEMORY_DEBUG] memory op error: {e}")
+                except Exception:
+                    pass
             pass
 
     if long_enabled:
@@ -193,7 +203,12 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
             if plan.feature_request and len(plan.feature_request) > 50:
                 ingest_fact(uid, plan.feature_request)
                 memory_long_writes += 1
-        except Exception:
+        except Exception as e:
+            if os.getenv("MEMORY_DEBUG", "").lower() in ("1","true","yes","on"):
+                try:
+                    print(f"[MEMORY_DEBUG] memory op error: {e}")
+                except Exception:
+                    pass
             pass
 
     # 7) Build audit fields with memory counters
@@ -204,13 +219,13 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
         "llm_tokens_completion": result.get("tokens_completion"),
         "llm_cost_usd": result.get("cost_usd"),
         **rag_meta,
-        "memory_short_reads": memory_short_reads,
-        "memory_short_writes": memory_short_writes,
-        "memory_short_pruned": memory_short_pruned,
-        "summary_updated": summary_updated,
-        "memory_long_reads": memory_long_reads,
-        "memory_long_writes": memory_long_writes,
-        "memory_long_pruned": memory_long_pruned,
+        "memory_short_reads": int(memory_short_reads or 0),
+        "memory_short_writes": int(memory_short_writes or 0),
+        "memory_short_pruned": int(memory_short_pruned or 0),
+        "summary_updated": bool(summary_updated),
+        "memory_long_reads": int(memory_long_reads or 0),
+        "memory_long_writes": int(memory_long_writes or 0),
+        "memory_long_pruned": int(memory_long_pruned or 0),
     }
 
     return plan, audit
