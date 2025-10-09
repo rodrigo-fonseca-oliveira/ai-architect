@@ -204,6 +204,24 @@ def post_architect(request: Request, payload: ArchitectRequest):
         if v is not None:
             audit[k] = v
 
+    # Filter memory fields from audit when memory is disabled
+    def _flag_on(name: str) -> bool:
+        return os.getenv(name, "false").lower() in ("1", "true", "yes", "on")
+
+    short_on = _flag_on("MEMORY_SHORT_ENABLED")
+    long_on = _flag_on("MEMORY_LONG_ENABLED")
+    if audit:
+        filtered = {}
+        for k, v in audit.items():
+            if k.startswith("memory_short_") and not short_on:
+                continue
+            if k.startswith("memory_long_") and not long_on:
+                continue
+            if k == "summary_updated" and not short_on:
+                continue
+            filtered[k] = v
+        audit = filtered
+
     return ArchitectResponse(
         answer=answer,
         citations=citations,
