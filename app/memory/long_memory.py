@@ -13,8 +13,6 @@ PREFIX = os.getenv("MEMORY_COLLECTION_PREFIX", "memory")
 
 # Fallback in-memory store to avoid external dependency in tests/CI
 _FACT_STORE: dict[str, list[dict[str, Any]]] = {}
-MEMORY_LONG_MAX_FACTS = int(os.getenv("MEMORY_LONG_MAX_FACTS", "0"))
-MEMORY_LONG_RETENTION_DAYS = int(os.getenv("MEMORY_LONG_RETENTION_DAYS", "0"))
 
 
 def _get_embedder():
@@ -34,10 +32,11 @@ def retrieve_facts(user_id: str, query: str, top_k: int = 5) -> List[Dict[str, A
         return []
     # prune by retention days if configured
     pruned = 0
-    if MEMORY_LONG_RETENTION_DAYS and MEMORY_LONG_RETENTION_DAYS > 0:
+    retention_days = int(os.getenv("MEMORY_LONG_RETENTION_DAYS", "0"))
+    if retention_days and retention_days > 0:
         import time
 
-        cutoff = time.time() - (MEMORY_LONG_RETENTION_DAYS * 86400)
+        cutoff = time.time() - (retention_days * 86400)
         before = len(facts)
         facts = [f for f in facts if f.get("created_at", 0) >= cutoff]
         pruned += before - len(facts)
@@ -103,15 +102,12 @@ def ingest_fact(
     else:
         lst.append(item)
     # enforce max facts per user if configured
-    if (
-        MEMORY_LONG_MAX_FACTS
-        and MEMORY_LONG_MAX_FACTS > 0
-        and len(lst) > MEMORY_LONG_MAX_FACTS
-    ):
+    max_facts = int(os.getenv("MEMORY_LONG_MAX_FACTS", "0"))
+    if max_facts and max_facts > 0 and len(lst) > max_facts:
         # evict oldest by created_at
         before = len(lst)
         lst.sort(key=lambda f: f.get("created_at", 0), reverse=False)
-        while len(lst) > MEMORY_LONG_MAX_FACTS:
+        while len(lst) > max_facts:
             lst.pop(0)
         evicted = before - len(lst)
         try:

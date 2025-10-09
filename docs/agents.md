@@ -45,6 +45,14 @@ Architect agent and community loop
   - LLM_ENABLE_ARCHITECT (default: false) — when true, uses LLM-backed agent for plan generation
   - DOCS_PATH — path to docs corpus for grounding; RAG flags apply
   - RAG_MULTI_QUERY_ENABLED, RAG_MULTI_QUERY_COUNT, RAG_HYDE_ENABLED — retrieval behavior
+  - MEMORY_SHORT_ENABLED (default: false) — enables short-term conversation memory
+  - MEMORY_LONG_ENABLED (default: false) — enables long-term semantic fact memory
+- Memory Integration:
+  - When MEMORY_SHORT_ENABLED=true, the agent loads recent conversation turns and prepends them to the context
+  - When MEMORY_LONG_ENABLED=true, the agent retrieves relevant facts from past sessions and injects them as background context
+  - After generating a plan, the agent saves the conversation turn and ingests key insights (summary, steps, feature requests) as long-term facts
+  - Memory audit fields are included in the response: memory_short_reads, memory_short_writes, memory_long_reads, memory_long_writes, memory_short_pruned, memory_long_pruned, summary_updated
+  - See docs/memory.md for retention and configuration details
 - SSE event contract (/architect/stream):
   - event: meta
     data: { "provider": string|null, "model": string|null, "grounded_used": bool|null }

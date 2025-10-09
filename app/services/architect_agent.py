@@ -26,7 +26,66 @@ def _build_messages(question: str, plan_parser: PydanticOutputParser, context_bl
 
 
 def run_architect_agent(question: str, session_id: str | None = None, user_id: str | None = None) -> Tuple[ArchitectPlan, Dict[str, Any]]:
-    # 1) Retrieval
+    # Initialize memory flags and counters
+    short_enabled = os.getenv("MEMORY_SHORT_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+    long_enabled = os.getenv("MEMORY_LONG_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+
+    memory_short_reads = 0
+    memory_short_writes = 0
+    memory_short_pruned = 0
+    summary_updated = False
+    memory_long_reads = 0
+    memory_long_writes = 0
+    memory_long_pruned = 0
+
+    uid = user_id or "anonymous"
+    sid = session_id or "default"
+
+    # Augment question with memory context
+    original_question = question
+
+    # 1a) Short-term memory: load conversation history
+    if short_enabled:
+        try:
+            from app.memory.short_memory import init_short_memory, load_summary, load_turns
+
+            init_short_memory()
+            turns = load_turns(uid, sid)
+            memory_short_reads = len(turns)
+            memory_short_pruned = int(getattr(load_turns, "_last_pruned", 0))
+            prefix = load_summary(uid, sid) or "\n".join(f"{r}: {c}" for r, c in turns[-5:])  # last 5 turns
+            if prefix:
+                question = f"Conversation history:\n{prefix}\n\nCurrent question: {question}"
+            # Bump cumulative counter
+            try:
+                from app.routers import memory as memory_router_mod
+                memory_router_mod._memory_short_pruned_total += int(memory_short_pruned)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    # 1b) Long-term memory: retrieve relevant facts
+    if long_enabled:
+        try:
+            from app.memory.long_memory import retrieve_facts
+
+            facts = retrieve_facts(uid, original_question, top_k=5)
+            memory_long_reads = len(facts)
+            memory_long_pruned = int(getattr(retrieve_facts, "_last_pruned", 0))
+            if facts:
+                snippet = "\n".join(f"- {f['text']}" for f in facts)
+                question = f"Relevant background facts:\n{snippet}\n\n{question}"
+            # Bump cumulative counter
+            try:
+                from app.routers import memory as memory_router_mod
+                memory_router_mod._memory_long_pruned_total += int(memory_long_pruned)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    # 2) Retrieval
     citations: List[Dict[str, Any]] = []
     rag_meta: Dict[str, Any] = {}
 
@@ -90,7 +149,43 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
     except Exception:
         pass
 
-    # 6) Build audit fields
+    # 6) Save to memory after generating plan
+    if short_enabled:
+        try:
+            from app.memory.short_memory import save_turn, update_summary_if_needed
+
+            save_turn(uid, sid, "user", original_question)
+            # Save plan summary as assistant response
+            assistant_response = plan.summary or "Generated architecture plan."
+            save_turn(uid, sid, "assistant", assistant_response)
+            memory_short_writes = 2
+            summary_updated = update_summary_if_needed(uid, sid)
+        except Exception:
+            pass
+
+    if long_enabled:
+        try:
+            from app.memory.long_memory import ingest_fact
+
+            # Ingest summary
+            if plan.summary and len(plan.summary) > 50:
+                ingest_fact(uid, plan.summary)
+                memory_long_writes += 1
+
+            # Ingest suggested steps
+            for step in (plan.suggested_steps or []):
+                if len(step) > 50:
+                    ingest_fact(uid, step)
+                    memory_long_writes += 1
+
+            # Ingest feature request if present
+            if plan.feature_request and len(plan.feature_request) > 50:
+                ingest_fact(uid, plan.feature_request)
+                memory_long_writes += 1
+        except Exception:
+            pass
+
+    # 7) Build audit fields with memory counters
     audit: Dict[str, Any] = {
         "llm_provider": result.get("provider"),
         "llm_model": result.get("model"),
@@ -98,6 +193,13 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
         "llm_tokens_completion": result.get("tokens_completion"),
         "llm_cost_usd": result.get("cost_usd"),
         **rag_meta,
+        "memory_short_reads": memory_short_reads,
+        "memory_short_writes": memory_short_writes,
+        "memory_short_pruned": memory_short_pruned,
+        "summary_updated": summary_updated,
+        "memory_long_reads": memory_long_reads,
+        "memory_long_writes": memory_long_writes,
+        "memory_long_pruned": memory_long_pruned,
     }
 
     return plan, audit
