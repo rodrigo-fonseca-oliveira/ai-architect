@@ -92,7 +92,8 @@ def test_architect_memory_integration_long_memory(cleanup_memory):
 
     # If facts were written in turn 1, turn 2 should potentially read them
     # (depends on similarity scoring)
-    long_reads = audit2.get("memory_long_reads", 0)
+    # Access non-deterministic reads count for debugging (no assertion on value)
+    _ = audit2.get("memory_long_reads", 0)
     # This is non-deterministic based on embeddings, so we just check the field exists
     assert "memory_long_reads" in audit2
 
