@@ -1,3 +1,4 @@
+import os
 from typing import AsyncGenerator, Dict, Any
 from fastapi import APIRouter, Request, Query
 from fastapi.responses import StreamingResponse
@@ -8,12 +9,19 @@ router = APIRouter()
 
 async def _gen_sse(plan: Dict[str, Any], audit: Dict[str, Any]) -> AsyncGenerator[bytes, None]:
     import json
-    # Emit meta first
+    # Emit meta first (include memory stats when present)
     meta = {
         "provider": audit.get("llm_provider"),
         "model": audit.get("llm_model"),
         "grounded_used": plan.get("grounded_used"),
     }
+    # Include memory keys consistently when flags are enabled
+    def _flag_on(name: str) -> bool:
+        return (os.getenv(name, "false").lower() in ("1","true","yes","on"))
+    if _flag_on("MEMORY_SHORT_ENABLED"):
+        meta["memory_short_reads"] = int(audit.get("memory_short_reads", 0) or 0)
+    if _flag_on("MEMORY_LONG_ENABLED"):
+        meta["memory_long_reads"] = int(audit.get("memory_long_reads", 0) or 0)
     yield f"event: meta\ndata: {json.dumps(meta)}\n\n".encode()
     # Summary
     if plan.get("summary"):
