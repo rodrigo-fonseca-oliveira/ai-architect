@@ -26,7 +26,68 @@ def _build_messages(question: str, plan_parser: PydanticOutputParser, context_bl
 
 
 def run_architect_agent(question: str, session_id: str | None = None, user_id: str | None = None) -> Tuple[ArchitectPlan, Dict[str, Any]]:
-    # 1) Retrieval
+    # Initialize memory flags and counters
+    short_enabled = os.getenv("MEMORY_SHORT_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+    long_enabled = os.getenv("MEMORY_LONG_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+
+    memory_short_reads = 0
+    memory_short_writes = 0
+    memory_short_pruned = 0
+    summary_updated = False
+    memory_long_reads = 0
+    memory_long_writes = 0
+    memory_long_pruned = 0
+
+    uid = user_id or "anonymous"
+    sid = session_id or "default"
+
+    # Keep original question; build separate context blocks for memory
+    original_question = question
+    memory_context_block: str | None = None
+    facts_context_block: str | None = None
+
+    # 1a) Short-term memory: load conversation history
+    if short_enabled:
+        try:
+            from app.memory.short_memory import init_short_memory, load_summary, load_turns
+
+            init_short_memory()
+            turns = load_turns(uid, sid)
+            memory_short_reads = len(turns)
+            memory_short_pruned = int(getattr(load_turns, "_last_pruned", 0))
+            prefix = load_summary(uid, sid) or "\n".join(f"{r}: {c}" for r, c in turns[-5:])  # last 5 turns
+            if prefix:
+                memory_context_block = f"Conversation context:\n{prefix}"
+            # Note: do not bump router-level globals from service; keep metrics in audit only
+        except Exception as e:
+            if os.getenv("MEMORY_DEBUG", "").lower() in ("1","true","yes","on"):
+                try:
+                    print(f"[MEMORY_DEBUG] memory op error: {e}")
+                except Exception:
+                    pass
+            pass
+
+    # 1b) Long-term memory: retrieve relevant facts
+    if long_enabled:
+        try:
+            from app.memory.long_memory import retrieve_facts
+
+            facts = retrieve_facts(uid, original_question, top_k=5)
+            memory_long_reads = len(facts)
+            memory_long_pruned = int(getattr(retrieve_facts, "_last_pruned", 0))
+            if facts:
+                snippet = "\n".join(f"- {f['text']}" for f in facts)
+                facts_context_block = f"Relevant background facts:\n{snippet}"
+            # Note: do not bump router-level globals from service; keep metrics in audit only
+        except Exception as e:
+            if os.getenv("MEMORY_DEBUG", "").lower() in ("1","true","yes","on"):
+                try:
+                    print(f"[MEMORY_DEBUG] memory op error: {e}")
+                except Exception:
+                    pass
+            pass
+
+    # 2) Retrieval
     citations: List[Dict[str, Any]] = []
     rag_meta: Dict[str, Any] = {}
 
@@ -39,7 +100,7 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
             rag_meta[k] = rag[k]
 
     grounded_used = bool(citations)
-    context_blocks: List[str] = []
+    rag_lines: List[str] = []
     if grounded_used:
         # Make compact context lines
         for c in citations[:3]:
@@ -47,11 +108,20 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
             snippet = (c.get("snippet") or "").strip().replace("\n", " ")
             if snippet:
                 snippet = snippet[:400]
-            context_blocks.append(f"- {title}: {snippet}")
+            rag_lines.append(f"- {title}: {snippet}")
+
+    # Build final context blocks: memory (short), facts (long), then RAG
+    final_context: List[str] = []
+    if memory_context_block:
+        final_context.append(memory_context_block)
+    if facts_context_block:
+        final_context.append(facts_context_block)
+    if grounded_used and rag_lines:
+        final_context.append("Grounding:\n" + "\n".join(rag_lines))
 
     # 2) Build messages with structured format instructions
     parser = PydanticOutputParser(pydantic_object=ArchitectPlan)
-    messages = _build_messages(question, parser, context_blocks if grounded_used else None)
+    messages = _build_messages(original_question, parser, final_context if final_context else None)
 
     # 3) Call LLM
     llm = LLMClient()
@@ -87,10 +157,61 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
                 f"Request: {question[:60]}" if question else "Feature request"
             )
             plan.tone_hint = plan.tone_hint or ("exploratory" if not grounded_used else "actionable")
-    except Exception:
-        pass
+    except Exception as e:
+            if os.getenv("MEMORY_DEBUG", "").lower() in ("1","true","yes","on"):
+                try:
+                    print(f"[MEMORY_DEBUG] memory op error: {e}")
+                except Exception:
+                    pass
+            pass
 
-    # 6) Build audit fields
+    # 6) Save to memory after generating plan
+    if short_enabled:
+        try:
+            from app.memory.short_memory import save_turn, update_summary_if_needed
+
+            save_turn(uid, sid, "user", original_question)
+            # Save plan summary as assistant response
+            assistant_response = plan.summary or "Generated architecture plan."
+            save_turn(uid, sid, "assistant", assistant_response)
+            memory_short_writes = 2
+            summary_updated = update_summary_if_needed(uid, sid)
+        except Exception as e:
+            if os.getenv("MEMORY_DEBUG", "").lower() in ("1","true","yes","on"):
+                try:
+                    print(f"[MEMORY_DEBUG] memory op error: {e}")
+                except Exception:
+                    pass
+            pass
+
+    if long_enabled:
+        try:
+            from app.memory.long_memory import ingest_fact
+
+            # Ingest summary
+            if plan.summary and len(plan.summary) > 50:
+                ingest_fact(uid, plan.summary)
+                memory_long_writes += 1
+
+            # Ingest suggested steps
+            for step in (plan.suggested_steps or []):
+                if len(step) > 50:
+                    ingest_fact(uid, step)
+                    memory_long_writes += 1
+
+            # Ingest feature request if present
+            if plan.feature_request and len(plan.feature_request) > 50:
+                ingest_fact(uid, plan.feature_request)
+                memory_long_writes += 1
+        except Exception as e:
+            if os.getenv("MEMORY_DEBUG", "").lower() in ("1","true","yes","on"):
+                try:
+                    print(f"[MEMORY_DEBUG] memory op error: {e}")
+                except Exception:
+                    pass
+            pass
+
+    # 7) Build audit fields with memory counters
     audit: Dict[str, Any] = {
         "llm_provider": result.get("provider"),
         "llm_model": result.get("model"),
@@ -98,6 +219,13 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
         "llm_tokens_completion": result.get("tokens_completion"),
         "llm_cost_usd": result.get("cost_usd"),
         **rag_meta,
+        "memory_short_reads": int(memory_short_reads or 0),
+        "memory_short_writes": int(memory_short_writes or 0),
+        "memory_short_pruned": int(memory_short_pruned or 0),
+        "summary_updated": bool(summary_updated),
+        "memory_long_reads": int(memory_long_reads or 0),
+        "memory_long_writes": int(memory_long_writes or 0),
+        "memory_long_pruned": int(memory_long_pruned or 0),
     }
 
     return plan, audit
