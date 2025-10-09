@@ -41,8 +41,10 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
     uid = user_id or "anonymous"
     sid = session_id or "default"
 
-    # Augment question with memory context
+    # Keep original question; build separate context blocks for memory
     original_question = question
+    memory_context_block: str | None = None
+    facts_context_block: str | None = None
 
     # 1a) Short-term memory: load conversation history
     if short_enabled:
@@ -55,7 +57,7 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
             memory_short_pruned = int(getattr(load_turns, "_last_pruned", 0))
             prefix = load_summary(uid, sid) or "\n".join(f"{r}: {c}" for r, c in turns[-5:])  # last 5 turns
             if prefix:
-                question = f"Conversation history:\n{prefix}\n\nCurrent question: {question}"
+                memory_context_block = f"Conversation context:\n{prefix}"
             # Bump cumulative counter
             try:
                 from app.routers import memory as memory_router_mod
@@ -75,7 +77,7 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
             memory_long_pruned = int(getattr(retrieve_facts, "_last_pruned", 0))
             if facts:
                 snippet = "\n".join(f"- {f['text']}" for f in facts)
-                question = f"Relevant background facts:\n{snippet}\n\n{question}"
+                facts_context_block = f"Relevant background facts:\n{snippet}"
             # Bump cumulative counter
             try:
                 from app.routers import memory as memory_router_mod
@@ -98,7 +100,7 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
             rag_meta[k] = rag[k]
 
     grounded_used = bool(citations)
-    context_blocks: List[str] = []
+    rag_lines: List[str] = []
     if grounded_used:
         # Make compact context lines
         for c in citations[:3]:
@@ -106,11 +108,20 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
             snippet = (c.get("snippet") or "").strip().replace("\n", " ")
             if snippet:
                 snippet = snippet[:400]
-            context_blocks.append(f"- {title}: {snippet}")
+            rag_lines.append(f"- {title}: {snippet}")
+
+    # Build final context blocks: memory (short), facts (long), then RAG
+    final_context: List[str] = []
+    if memory_context_block:
+        final_context.append(memory_context_block)
+    if facts_context_block:
+        final_context.append(facts_context_block)
+    if grounded_used and rag_lines:
+        final_context.append("Grounding:\n" + "\n".join(rag_lines))
 
     # 2) Build messages with structured format instructions
     parser = PydanticOutputParser(pydantic_object=ArchitectPlan)
-    messages = _build_messages(question, parser, context_blocks if grounded_used else None)
+    messages = _build_messages(original_question, parser, final_context if final_context else None)
 
     # 3) Call LLM
     llm = LLMClient()
