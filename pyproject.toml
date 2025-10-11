@@ -10,9 +10,9 @@ include = ["app*", "db*", "ml*", "scripts*"]
 
 [project]
 name = "ai-architect"
-version = "0.1.0"
+version = "0.9.0"
 description = "FastAPI gateway for AI Architect"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [{name = "Your Name"}]
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -42,11 +42,6 @@ dependencies = [
 [tool.ruff]
 line-length = 100
 lint.select = ["E", "F"]
-lint.ignore = ["E501", "F401", "F821", "E401"]
+lint.ignore = ["E501", "F401", "F821", "E401", "E402"]
 
-[tool.ruff.lint.per-file-ignores]
-"app/main.py" = ["E402"]
-"app/schemas/research.py" = ["E402"]
-"tests/test_memory_endpoints.py" = ["E402"]
-"tests/test_memory_long.py" = ["E402"]
-"tests/test_memory_short.py" = ["E402"]
+

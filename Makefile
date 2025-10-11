@@ -53,3 +53,15 @@ logs:
 
 test-docker:
 	docker compose run --rm api /bin/sh -lc ". /opt/venv/bin/activate || true; [ -d /opt/venv ] || python -m venv /opt/venv; . /opt/venv/bin/activate; pip install -e .; pytest -q"
+
+# Live eval
+EVAL_FILE ?= eval/architect_prompts.jsonl
+EVAL_LIMIT ?= 0
+SUMMARY_MIN ?= 40
+STEPS_MIN ?= 2
+STEP_CHARS ?= 20
+
+LLM_MODEL ?=
+
+eval-live:
+	. .venv/bin/activate || true; python scripts/run_live_eval.py --file $(EVAL_FILE) --limit $(EVAL_LIMIT) --summary-min $(SUMMARY_MIN) --steps-min $(STEPS_MIN) --step-chars $(STEP_CHARS) $(if $(LLM_MODEL),--llm-model $(LLM_MODEL),)

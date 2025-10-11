@@ -1,10 +1,25 @@
 import os
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
 from langchain.output_parsers import PydanticOutputParser
 from app.services.llm_client import LLMClient
 from app.services.architect_schema import ArchitectPlan
 from app.services.langchain_rag import answer_with_citations
+
+# Optional LangSmith tracing (env-gated)
+from app.utils.logger import get_logger as _get_logger
+_arch_logger = _get_logger("architect")
+_ENABLE_LS = os.getenv("LANGCHAIN_TRACING_V2", "").lower() in ("1", "true", "yes", "on") and bool(os.getenv("LANGCHAIN_API_KEY"))
+_LS_PROJECT = os.getenv("LANGCHAIN_PROJECT")
+_LS_SESSION = os.getenv("LANGCHAIN_TRACING_SESSION_NAME")
+try:
+    if _ENABLE_LS:
+        from langsmith.run_trees import RunTree as _LSRunTree  # type: ignore
+    else:
+        _LSRunTree = None  # type: ignore
+except Exception:
+    _LSRunTree = None  # type: ignore
 
 
 def _build_messages(question: str, plan_parser: PydanticOutputParser, context_blocks: List[str] | None = None) -> List[Dict[str, str]]:
@@ -28,7 +43,7 @@ def _build_messages(question: str, plan_parser: PydanticOutputParser, context_bl
     return messages
 
 
-def run_architect_agent(question: str, session_id: str | None = None, user_id: str | None = None) -> Tuple[ArchitectPlan, Dict[str, Any]]:
+def run_architect_agent(question: str, session_id: str | None = None, user_id: str | None = None, llm_model: str | None = None) -> Tuple[ArchitectPlan, Dict[str, Any]]:
     # Initialize memory flags and counters
     short_enabled = os.getenv("MEMORY_SHORT_ENABLED", "false").lower() in ("1", "true", "yes", "on")
     long_enabled = os.getenv("MEMORY_LONG_ENABLED", "false").lower() in ("1", "true", "yes", "on")
@@ -128,7 +143,26 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
 
     # 3) Call LLM
     llm = LLMClient()
-    result = llm.call(messages)
+
+    # Optional: start LangSmith run
+    ls_run = None
+    ls_run_id = None
+    if _LSRunTree:
+        try:
+            _arch_logger.info("ls.run_tree start", extra={"extra": {"project": _LS_PROJECT, "session": _LS_SESSION}})
+            ls_inputs = {"question": original_question, "context_blocks": final_context}
+            ls_run = _LSRunTree(name="architect_server", run_type="chain", project=_LS_PROJECT, inputs=ls_inputs)
+            ls_run_id = getattr(ls_run, "id", None)
+            ls_run.post()
+            _arch_logger.info("ls.run_tree posted", extra={"extra": {"run_id": ls_run_id}})
+        except Exception as _e:
+            _arch_logger.info("ls.run_tree failed", extra={"extra": {"error": str(_e)}})
+            ls_run = None
+
+    call_kwargs: Dict[str, Any] = {}
+    if llm_model:
+        call_kwargs["model"] = llm_model
+    result = llm.call(messages, **call_kwargs)
 
     # 4) Parse structured output (fallback to defaults on error)
     text = result.get("text") or ""
@@ -144,16 +178,11 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
         except Exception:
             plan = ArchitectPlan()
 
-    # Post-parse guardrails: ensure summary and steps exist
+    # Post-parse guardrails: ensure fields are non-null, but do not synthesize content
     try:
-        if not getattr(plan, "summary", None):
-            # Derive a minimal summary from text if possible
-            if isinstance(text, str) and text.strip():
-                s = text.strip().splitlines()[0][:240]
-                plan.summary = s
-            else:
-                plan.summary = ""
-        if not getattr(plan, "suggested_steps", None):
+        if getattr(plan, "summary", None) is None:
+            plan.summary = ""
+        if getattr(plan, "suggested_steps", None) is None:
             plan.suggested_steps = []
     except Exception:
         # Never fail the request due to guardrail adjustments
@@ -163,6 +192,24 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
     if grounded_used:
         plan.citations = citations
         plan.grounded_used = True
+
+    # Complete LangSmith run with outputs (if enabled)
+    if ls_run and ls_run_id:
+        try:
+            ls_outputs = {
+                "summary": plan.summary,
+                "steps": plan.suggested_steps,
+                "citations": plan.citations,
+                "audit": {
+                    "llm_model": llm_model or llm.model,
+                    "memory_short_reads": memory_short_reads,
+                    "memory_long_reads": memory_long_reads,
+                },
+            }
+            ls_run.end(outputs=ls_outputs, end_time=datetime.now(timezone.utc))
+            _arch_logger.info("ls.run_tree end ok", extra={"extra": {"run_id": ls_run_id}})
+        except Exception as _e:
+            _arch_logger.info("ls.run_tree end failed", extra={"extra": {"error": str(_e), "run_id": ls_run_id}})
 
     # Light heuristic for feature suggestion
     try:

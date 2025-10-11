@@ -44,8 +44,9 @@ class LLMClient:
             "cost_usd": 0.0,
         }
 
-    def call(self, messages: List[Dict[str, str]], **kwargs) -> Dict[str, Any]:
+    def call(self, messages: List[Dict[str, str]], model: Optional[str] = None, **kwargs) -> Dict[str, Any]:
         provider = self.provider
+        model_to_use = model or self.model
         if provider == "stub":
             return self._stub_call(messages, reason="provider=stub configured")
         try:
@@ -57,7 +58,7 @@ class LLMClient:
                     return self._stub_call(messages, reason="missing OPENAI_API_KEY")
                 client = OpenAI(api_key=api_key)
                 params: Dict[str, Any] = {
-                    "model": self.model,
+                    "model": model_to_use,
                     "messages": messages,
                     "max_completion_tokens": self.max_tokens,
                 }
@@ -82,7 +83,7 @@ class LLMClient:
                 return {
                     "text": text,
                     "provider": provider,
-                    "model": self.model,
+                    "model": model_to_use,
                     "tokens_prompt": tp,
                     "tokens_completion": tc,
                     "cost_usd": 0.0,
@@ -98,7 +99,7 @@ class LLMClient:
                     "Content-Type": "application/json",
                 }
                 payload = {
-                    "model": self.model,
+                    "model": model_to_use,
                     "messages": messages,
                     "temperature": self.temperature,
                     "max_tokens": self.max_tokens,
@@ -115,7 +116,7 @@ class LLMClient:
                 return {
                     "text": text,
                     "provider": provider,
-                    "model": self.model,
+                    "model": model_to_use,
                     "tokens_prompt": tp,
                     "tokens_completion": tc,
                     "cost_usd": 0.0,
@@ -126,7 +127,7 @@ class LLMClient:
 
                 api_key = os.getenv("AZURE_OPENAI_API_KEY")
                 endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-                deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT") or self.model
+                deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT") or model_to_use
                 if not api_key or not endpoint:
                     return self._stub_call(messages, reason="missing AZURE_OPENAI_API_KEY or AZURE_OPENAI_ENDPOINT")
                 url = f"{endpoint}/openai/deployments/{deployment}/chat/completions?api-version=2024-02-15-preview"
@@ -151,7 +152,7 @@ class LLMClient:
                 return {
                     "text": text,
                     "provider": provider,
-                    "model": deployment or self.model,
+                    "model": deployment or model_to_use,
                     "tokens_prompt": tp,
                     "tokens_completion": tc,
                     "cost_usd": 0.0,
