@@ -12,7 +12,10 @@ def _build_messages(question: str, plan_parser: PydanticOutputParser, context_bl
     fmt = plan_parser.get_format_instructions()
     system = (
         "You are the solution architect assistant for the AI-Architect project. "
-        "Respond ONLY with a JSON object that matches the provided schema."
+        "Respond ONLY with a JSON object that matches the provided schema. "
+        "Your JSON MUST include both 'summary' (string) and 'suggested_steps' (array of strings). "
+        "If you cannot provide a value, set summary to an empty string and suggested_steps to an empty array. "
+        "Do not include any fields outside the schema; do not include explanations outside JSON."
     )
     messages: List[Dict[str, str]] = [
         {"role": "system", "content": system},
@@ -140,6 +143,21 @@ def run_architect_agent(question: str, session_id: str | None = None, user_id: s
             plan = ArchitectPlan(**data) if isinstance(data, dict) else ArchitectPlan()
         except Exception:
             plan = ArchitectPlan()
+
+    # Post-parse guardrails: ensure summary and steps exist
+    try:
+        if not getattr(plan, "summary", None):
+            # Derive a minimal summary from text if possible
+            if isinstance(text, str) and text.strip():
+                s = text.strip().splitlines()[0][:240]
+                plan.summary = s
+            else:
+                plan.summary = ""
+        if not getattr(plan, "suggested_steps", None):
+            plan.suggested_steps = []
+    except Exception:
+        # Never fail the request due to guardrail adjustments
+        pass
 
     # 5) Attach citations if grounded
     if grounded_used:
