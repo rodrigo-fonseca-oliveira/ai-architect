@@ -3,7 +3,7 @@
 This guide helps you install, run, and explore AI Architect locally. For a product overview, see the root README. For deeper topics, see the docs index.
 
 Prerequisites
-- Python 3.10+
+- Python 3.11+
 - Optional: Docker (for the observability stack)
 - Optional: jq (for scripts/e2e examples)
 

@@ -3,7 +3,7 @@
 This guide walks you through a comprehensive, reproducible end-to-end (E2E) test of the AI Architect. It combines manual validation with scripted commands (curl/Python) and optional stress testing.
 
 Prerequisites
-- Python 3.10+
+- Python 3.11+
 - POSIX shell (bash)
 - curl and jq installed (required for the script)
   - Ubuntu/Debian: `sudo apt-get update && sudo apt-get install -y jq`

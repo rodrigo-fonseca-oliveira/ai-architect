@@ -5,7 +5,8 @@ help:
 	@echo "Targets: venv, install, test, serve, lint, ingest, sweep, freeze, export-openapi, dev-up, dev-down, prod-up, prod-down, logs"
 
 venv:
-	python3 -m venv .venv
+	@command -v python3.11 >/dev/null 2>&1 || { echo "python3.11 is required but not installed. Please install Python 3.11 (e.g., via pyenv or your package manager)." >&2; exit 1; }
+	python3.11 -m venv .venv
 	. .venv/bin/activate && pip install -U pip setuptools wheel
 	. .venv/bin/activate && pip install -e .
 

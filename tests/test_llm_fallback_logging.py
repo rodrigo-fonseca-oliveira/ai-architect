@@ -7,7 +7,7 @@ from app.services.llm_client import LLMClient
 def test_openai_unsupported_model_falls_back_with_warning(monkeypatch, capsys):
     # Ensure provider is openai but with an unsupported model name
     monkeypatch.setenv("LLM_PROVIDER", "openai")
-    monkeypatch.setenv("LLM_MODEL", "gpt-5-2025-08-07")
+    monkeypatch.setenv("LLM_MODEL", "gpt-4o-mini")
     # Missing key should trigger clear reason
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
@@ -15,7 +15,7 @@ def test_openai_unsupported_model_falls_back_with_warning(monkeypatch, capsys):
     out = client.call([{"role": "user", "content": "hello"}])
 
     assert out["provider"] == "stub"
-    assert out["model"] == "gpt-5-2025-08-07"
+    assert out["model"] == "gpt-4o-mini"
 
 
 def test_openai_exception_falls_back_with_reason(monkeypatch):
