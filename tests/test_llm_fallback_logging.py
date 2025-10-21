@@ -26,14 +26,16 @@ def test_openai_exception_falls_back_with_reason(monkeypatch):
 
     class DummyChoice:
         def __init__(self):
-            class M: pass
+            class M:
+                pass
             self.message = M()
             self.message.content = "ok"
 
     class DummyResp:
         def __init__(self):
             self.choices = [DummyChoice()]
-            class U: pass
+            class U:
+                pass
             self.usage = U()
             self.usage.prompt_tokens = 1
             self.usage.completion_tokens = 1

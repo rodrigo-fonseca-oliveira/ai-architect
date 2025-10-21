@@ -102,7 +102,7 @@ def score_result(result: Dict[str, Any], cfg: EvalConfig) -> Dict[str, Any]:
     s_len = len(summary.strip())
     steps_ok = isinstance(steps, list) and len(steps) >= cfg.steps_min
     steps_lengths = [len(str(s).strip()) for s in steps]
-    steps_chars_ok = all(l >= cfg.step_chars for l in steps_lengths) if steps else False
+    steps_chars_ok = all(length >= cfg.step_chars for length in steps_lengths) if steps else False
     summary_ok = s_len >= cfg.summary_min
 
     scores = {
