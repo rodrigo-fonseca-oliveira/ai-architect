@@ -258,7 +258,7 @@ sqlite3 audit.db 'select count(1) from audit;'
 ```
 Metrics counters
 ```
-curl -sS localhost:8000/metrics | grep '^tokens_total' -n | head -n 3
+curl -sS localhost:8000/metrics | grep '^app_tokens_total' -n | head -n 3
 ```
 Expected: tokens_total appears and increases after requests
 

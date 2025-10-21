@@ -20,7 +20,8 @@ Core topics
 - project_guide_rag.md: behavior spec for Project Guide and Architect modes
 - router.md, router_rules.md: routing behavior and configuration
 - memory.md: short/long memory behavior and endpoints
-- observability.md: metrics, dashboards, and logs
+- observability.md: memory-related observability notes
+- observability_metrics.md: Prometheus metrics, dashboards, and logs
 - security.md: RBAC, PII, and retention
 - ml.md, mlops_plan.md: MLflow, drift, and lifecycle
 - feature_store_quality.md: vendor-neutral feature store design and data quality checks
